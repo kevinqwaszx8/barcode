@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>盤點掃條碼工具</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- 條碼/QRCode 掃描套件：html5-qrcode -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+
+    <style>
+        body {
+            font-family: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+            margin: 10px;
+        }
+        h1 {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+        .section {
+            border: 1px solid #ccc;
+            padding: 8px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+        }
+        label {
+            display: block;
+            margin-top: 6px;
+            font-size: 14px;
+        }
+        input, button, select, textarea {
+            font-size: 16px;
+            padding: 4px;
+            margin-top: 2px;
+        }
+        button {
+            margin-right: 6px;
+            margin-top: 8px;
+        }
+        #reader {
+            width: 100%;
+            max-width: 400px;
+            margin-top: 6px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 4px;
+            text-align: center;
+        }
+        th {
+            background: #f0f0f0;
+        }
+        .small {
+            font-size: 12px;
+            color: #666;
+        }
+        .expiry-row {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        #last-result {
+            font-size: 13px;
+            color: #333;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+<h1>盤點掃條碼工具（手機版）</h1>
+
+<div class="section">
+    <strong>步驟說明：</strong>
+    <ol class="small">
+        <li>點「開始掃描」→ 授權相機 → 對準條碼（橫向擺進框內）</li>
+        <li>掃到後「條碼」欄位會自動帶入（上方也會顯示最後掃到的內容）</li>
+        <li>輸入「品名」、「效期（西元年/月/日）」、「數量」、「備註」→ 按「加入清單」</li>
+        <li>盤點完成後按「下載 CSV」→ 用電腦開啟 / 匯入系統</li>
+    </ol>
+</div>
+
+<!-- 掃描區塊 -->
+<div class="section">
+    <h2 style="font-size: 16px; margin: 0 0 4px 0;">1. 條碼掃描</h2>
+    <button id="start-scan">開始掃描</button>
+    <button id="stop-scan">停止掃描</button>
+    <div id="reader"></div>
+    <div id="last-result" class="small">最後掃描結果：尚未掃描</div>
+    <div class="small" style="margin-top:4px;">
+        若無法開啟相機，請確認：<br>
+        1. 網址是 <strong>https</strong> 開頭（目前是 ✅）<br>
+        2. 手機有允許瀏覽器使用相機<br>
+        3. 掃一般商品條碼（EAN-13 / UPC / CODE-128 等）
+    </div>
+</div>
+
+<!-- 資料輸入區 -->
+<div class="section">
+    <h2 style="font-size: 16px; margin: 0 0 4px 0;">2. 資料輸入</h2>
+
+    <label>
+        條碼：
+        <input type="text" id="barcode" placeholder="掃描後自動帶入，也可手動輸入">
+    </label>
+
+    <label>
+        品名：
+        <input type="text" id="name" placeholder="例如：得膚寶乳膏 15g">
+    </label>
+
+    <label>
+        效期（西元年 / 月 / 日）：
+        <div class="expiry-row">
+            <select id="exp-year">
+                <option value="">年</option>
+            </select>
+            <span>年</span>
+            <select id="exp-month">
+                <option value="">月</option>
+                <option value="1">1</option><option value="2">2</option>
+                <option value="3">3</option><option value="4">4</option>
+                <option value="5">5</option><option value="6">6</option>
+                <option value="7">7</option><option value="8">8</option>
+                <option value="9">9</option><option value="10">10</option>
+                <option value="11">11</option><option value="12">12</option>
+            </select>
+            <span>月</span>
+            <select id="exp-day">
+                <option value="">日</option>
+            </select>
+            <span>日（可留白）</span>
+        </div>
+    </label>
+
+    <label>
+        數量：
+        <input type="number" id="qty" min="1" value="1">
+    </label>
+
+    <label>
+        備註（例如：門市/庫房位置）：
+        <input type="text" id="note" placeholder="可不填">
+    </label>
+
+    <button id="add-row">加入清單</button>
+</div>
+
+<!-- 清單與下載 -->
+<div class="section">
+    <h2 style="font-size: 16px; margin: 0 0 4px 0;">3. 目前清單</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>#</th>
+            <th>條碼</th>
+            <th>品名</th>
+            <th>效期</th>
+            <th>數量</th>
+            <th>備註</th>
+            <th>建立時間</th>
+            <th>刪除</th>
+        </tr>
+        </thead>
+        <tbody id="table-body">
+        </tbody>
+    </table>
+    <button id="download-csv">下載 CSV</button>
+</div>
+
+<script>
+    // 盤點資料暫存
+    const records = [];
+
+    const barcodeInput = document.getElementById("barcode");
+    const nameInput    = document.getElementById("name");
+    const expYearSel   = document.getElementById("exp-year");
+    const expMonthSel  = document.getElementById("exp-month");
+    const expDaySel    = document.getElementById("exp-day");
+    const qtyInput     = document.getElementById("qty");
+    const noteInput    = document.getElementById("note");
+    const tableBody    = document.getElementById("table-body");
+    const lastResultEl = document.getElementById("last-result");
+
+    const startScanBtn   = document.getElementById("start-scan");
+    const stopScanBtn    = document.getElementById("stop-scan");
+    const addRowBtn      = document.getElementById("add-row");
+    const downloadCsvBtn = document.getElementById("download-csv");
+
+    let html5QrCode = null;   // Html5Qrcode 物件
+    let scanning = false;
+
+    // ===== 初始化：效期 年、日 選單 =====
+    (function initExpirySelects() {
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const maxYear = currentYear + 10; // 未來 10 年
+
+        for (let y = currentYear; y <= maxYear; y++) {
+            const opt = document.createElement("option");
+            opt.value = y;
+            opt.textContent = y;
+            expYearSel.appendChild(opt);
+        }
+
+        for (let d = 1; d <= 31; d++) {
+            const opt = document.createElement("option");
+            opt.value = d;
+            opt.textContent = d;
+            expDaySel.appendChild(opt);
+        }
+    })();
+
+    // ===== 1. 開始 / 停止 掃描（使用 Html5Qrcode 低階 API，專門掃條碼） =====
+    startScanBtn.addEventListener("click", async function() {
+        try {
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+            if (scanning) {
+                return;
+            }
+
+            const config = {
+                fps: 10,
+                qrbox: { width: 320, height: 200 },   // 長方形，比較適合條碼
+                formatsToSupport: [
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.EAN_8,
+                    Html5QrcodeSupportedFormats.UPC_A,
+                    Html5QrcodeSupportedFormats.UPC_E,
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.CODE_39,
+                    Html5QrcodeSupportedFormats.CODE_93,
+                    Html5QrcodeSupportedFormats.CODABAR
+                ],
+                experimentalFeatures: {
+                    // 有支援 BarcodeDetector 的瀏覽器，會更好掃
+                    useBarCodeDetectorIfSupported: true
+                }
+            };
+
+            function onScanSuccess(decodedText, decodedResult) {
+                console.log("Scan success:", decodedText, decodedResult);
+                barcodeInput.value = decodedText;
+                lastResultEl.textContent = "最後掃描結果：" + decodedText;
+            }
+
+            function onScanError(errorMessage) {
+                // 太吵就不要顯示，只留在 console
+                // console.log("Scan error:", errorMessage);
+            }
+
+            await html5QrCode.start(
+                { facingMode: "environment" }, // 後鏡頭
+                config,
+                onScanSuccess,
+                onScanError
+            );
+            scanning = true;
+            lastResultEl.textContent = "最後掃描結果：掃描中...";
+        } catch (err) {
+            console.error("啟動掃描失敗：", err);
+            alert("啟動相機失敗，請確認已允許相機權限，或換用 Chrome 試試看。");
+        }
+    });
+
+    stopScanBtn.addEventListener("click", async function() {
+        if (html5QrCode && scanning) {
+            try {
+                await html5QrCode.stop();
+                await html5QrCode.clear();
+            } catch (err) {
+                console.error("停止掃描失敗：", err);
+            }
+            scanning = false;
+            lastResultEl.textContent = "最後掃描結果：已停止掃描";
+        }
+    });
+
+    // ===== 2. 加入清單 =====
+    addRowBtn.addEventListener("click", function() {
+        const barcode = barcodeInput.value.trim();
+        const name    = nameInput.value.trim();
+        const year    = expYearSel.value;
+        const month   = expMonthSel.value;
+        const day     = expDaySel.value;
+        const qty     = qtyInput.value.trim();
+        const note    = noteInput.value.trim();
+
+        if (!barcode) {
+            alert("請先輸入或掃描條碼");
+            return;
+        }
+        if (!qty || Number(qty) <= 0) {
+            alert("請輸入正確的數量");
+            return;
+        }
+
+        let expiryDisplay = "";
+        let expiryCsv = "";
+        if (year || month || day) {
+            const y = year || "";
+            const m = month ? String(month).padStart(2, "0") : "";
+            const d = day ? String(day).padStart(2, "0") : "";
+            expiryDisplay = [y, m ? m : "", d ? d : ""].filter(x => x).join("/");
+            if (year && month && day) {
+                expiryCsv = `${y}-${m}-${d}`;
+            } else {
+                expiryCsv = expiryDisplay;
+            }
+        }
+
+        const now = new Date();
+        const createdAt = now.toISOString().slice(0, 19).replace("T", " ");
+
+        records.push({
+            barcode: barcode,
+            name:    name,
+            expiryDisplay: expiryDisplay,
+            expiryCsv:     expiryCsv,
+            qty:     qty,
+            note:    note,
+            createdAt: createdAt
+        });
+
+        renderTable();
+
+        barcodeInput.value = "";
+        qtyInput.value = 1;
+        noteInput.value = "";
+    });
+
+    function renderTable() {
+        tableBody.innerHTML = "";
+        records.forEach((rec, index) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${rec.barcode}</td>
+                <td>${rec.name || ""}</td>
+                <td>${rec.expiryDisplay || ""}</td>
+                <td>${rec.qty}</td>
+                <td>${rec.note || ""}</td>
+                <td>${rec.createdAt}</td>
+                <td><button data-index="${index}">刪除</button></td>
+            `;
+            tableBody.appendChild(tr);
+        });
+
+        Array.from(tableBody.querySelectorAll("button[data-index]")).forEach(btn => {
+            btn.addEventListener("click", function() {
+                const i = Number(this.getAttribute("data-index"));
+                records.splice(i, 1);
+                renderTable();
+            });
+        });
+    }
+
+    // ===== 3. 匯出 CSV（中文欄位 + BOM + 條碼防科學記號） =====
+    downloadCsvBtn.addEventListener("click", function() {
+        if (records.length === 0) {
+            alert("目前沒有資料，無法匯出");
+            return;
+        }
+
+        const header = ["條碼", "品名", "效期", "數量", "備註", "建立時間"];
+        const lines = [];
+        lines.push(header.join(","));
+
+        records.forEach(rec => {
+            function escapeField(v) {
+                if (v == null) return "";
+                const s = String(v).replace(/"/g, '""');
+                if (s.includes(",") || s.includes("\"") || s.includes("\n")) {
+                    return `"${s}"`;
+                }
+                return s;
+            }
+
+            const barcodeForExcel = rec.barcode
+                ? `="${rec.barcode}"`
+                : "";
+
+            const row = [
+                barcodeForExcel,
+                escapeField(rec.name),
+                escapeField(rec.expiryCsv || rec.expiryDisplay),
+                escapeField(rec.qty),
+                escapeField(rec.note),
+                escapeField(rec.createdAt)
+            ];
+            lines.push(row.join(","));
+        });
+
+        const csvContent = lines.join("\n");
+        const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const today = new Date().toISOString().slice(0,10);
+        a.href = url;
+        a.download = `inventory_${today}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    });
+</script>
+</body>
+</html>
