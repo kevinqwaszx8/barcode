@@ -424,7 +424,7 @@
         });
     }
 
-    // ===== 3. 匯出 Excel .xlsx（不清空資料） =====
+    // ===== 3. 匯出 Excel .xlsx（不清空資料，條碼為純文字） =====
     downloadXlsxBtn.addEventListener("click", function() {
         if (records.length === 0) {
             alert("目前沒有資料，無法匯出");
@@ -437,7 +437,7 @@
         records.forEach(rec => {
             data.push([
                 rec.user || "",
-                rec.barcode || "",
+                rec.barcode + "",   // ★ 強制用字串
                 rec.name || "",
                 rec.expiryCsv || rec.expiryDisplay || "",
                 rec.qty || "",
@@ -448,6 +448,16 @@
 
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.aoa_to_sheet(data);
+
+        // ★ 把條碼那一欄（B 欄）強制設為文字格式
+        for (let r = 1; r <= data.length; r++) {
+            const cell = ws[`B${r}`];
+            if (cell) {
+                cell.t = "s";  // cell type: string
+                cell.z = "@";  // 格式：文字
+            }
+        }
+
         XLSX.utils.book_append_sheet(wb, ws, "盤點");
 
         const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
