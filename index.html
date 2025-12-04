@@ -382,22 +382,45 @@
             if (scanning) return;
 
             const config = {
-                fps: 15,
-                qrbox: { width: 320, height: 140 }, // 長方形框，比較適合條碼
-                formatsToSupport: [
-                    Html5QrcodeSupportedFormats.EAN_13,
-                    Html5QrcodeSupportedFormats.EAN_8,
-                    Html5QrcodeSupportedFormats.UPC_A,
-                    Html5QrcodeSupportedFormats.UPC_E,
-                    Html5QrcodeSupportedFormats.CODE_128,
-                    Html5QrcodeSupportedFormats.CODE_39,
-                    Html5QrcodeSupportedFormats.CODE_93,
-                    Html5QrcodeSupportedFormats.CODABAR
-                ],
-                experimentalFeatures: {
-                    useBarCodeDetectorIfSupported: true
-                }
-            };
+    // 幀率稍微提高，畫面更新比較密，但不要太高避免手機吃不消
+    fps: 20,
+
+    // 掃描框自動依螢幕寬度調整：寬一點、扁一點，專門給一維條碼
+    qrbox: function(viewportWidth, viewportHeight) {
+        // 掃描框寬度 = 螢幕寬度的 90%，最多 360px
+        const width = Math.min(viewportWidth * 0.9, 360);
+        // 高度取較扁的比例，例如 0.35
+        const height = Math.round(width * 0.35);
+        return { width, height };
+    },
+
+    // 4:3 比例通常是多數手機後鏡頭最穩定的模式
+    aspectRatio: 4 / 3,
+
+    // 只支援一維條碼，減少多餘解碼類型
+    formatsToSupport: [
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.CODE_39,
+        Html5QrcodeSupportedFormats.CODE_93,
+        Html5QrcodeSupportedFormats.CODABAR
+    ],
+
+    experimentalFeatures: {
+        // 裝置有支援瀏覽器內建 BarcodeDetector 的話會自動用，比較快
+        useBarCodeDetectorIfSupported: true
+    },
+
+    // 有些手機前鏡頭會鏡像翻轉，先關掉
+    disableFlip: true,
+
+    // 記住上一次用的相機（通常是後鏡頭）
+    rememberLastUsedCamera: true
+};
+
 
             function onScanSuccess(decodedText, decodedResult) {
                 console.log("Scan success:", decodedText, decodedResult);
@@ -597,3 +620,4 @@
 </script>
 </body>
 </html>
+
