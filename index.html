@@ -11,202 +11,398 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
+        :root {
+            --primary: #16a085;   /* 主色：藍綠 */
+            --primary-soft: #e8f7f3;
+            --accent: #f39c12;    /* 強調色：橘色 */
+            --danger: #e74c3c;    /* 刪除、警告用 */
+            --text-main: #2c3e50;
+            --text-muted: #7f8c8d;
+            --border-color: #dde3ea;
+            --bg-body: #f5f7fb;
+            --bg-card: #ffffff;
+            --radius-md: 10px;
+            --shadow-soft: 0 4px 12px rgba(0,0,0,0.06);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-            margin: 10px;
+            margin: 0;
+            padding: 12px;
+            background: var(--bg-body);
+            color: var(--text-main);
         }
+
         h1 {
-            font-size: 20px;
-            margin-bottom: 8px;
+            font-size: 22px;
+            margin: 4px auto 10px;
+            text-align: center;
+            color: var(--primary);
+            letter-spacing: 1px;
         }
+
+        .page-container {
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
         .section {
-            border: 1px solid #ccc;
-            padding: 8px;
-            margin-bottom: 10px;
-            border-radius: 6px;
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            padding: 10px 12px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow-soft);
+            border: 1px solid rgba(255,255,255,0.8);
         }
+
+        .section h2 {
+            font-size: 16px;
+            margin: 0 0 6px 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .section h2::before {
+            content: "●";
+            font-size: 10px;
+            color: var(--primary);
+        }
+
         label {
             display: block;
-            margin-top: 6px;
-            font-size: 14px;
-        }
-        input, button, select {
-            font-size: 16px;
-            padding: 4px;
-            margin-top: 2px;
-        }
-        button {
-            margin-right: 6px;
             margin-top: 8px;
+            font-size: 14px;
+            color: var(--text-main);
         }
-        #reader {
+
+        input, select {
             width: 100%;
-            max-width: 400px;
-            margin-top: 6px;
+            font-size: 15px;
+            padding: 6px 8px;
+            margin-top: 4px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+            background-color: #fbfcff;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12px;
+
+        input:focus, select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(22,160,133,0.15);
+            background-color: #ffffff;
         }
-        th, td {
-            border: 1px solid #ccc;
-            padding: 4px;
-            text-align: center;
-        }
-        th {
-            background: #f0f0f0;
-        }
+
         .small {
             font-size: 12px;
-            color: #666;
+            color: var(--text-muted);
+            line-height: 1.5;
         }
+
         .expiry-row {
             display: flex;
             gap: 4px;
             align-items: center;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
         }
-        #last-result {
+
+        .expiry-row select {
+            flex: 1 1 auto;
+        }
+
+        .expiry-row span {
             font-size: 13px;
-            color: #333;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        #reader {
+            width: 100%;
+            max-width: 420px;
+            margin: 8px auto 0;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px dashed var(--border-color);
+            background: #000;
+        }
+
+        #last-result {
+            margin-top: 6px;
+            padding: 4px 6px;
+            border-radius: 6px;
+            background: #f8fafc;
+            border: 1px dashed #e1e7ee;
+        }
+
+        #zoom-hint {
             margin-top: 4px;
         }
-        #zoom-hint {
-            margin-top: 2px;
+
+        /* 按鈕樣式 */
+        button {
+            font-size: 15px;
+            padding: 7px 10px;
+            border-radius: 999px;
+            border: none;
+            cursor: pointer;
+            margin-right: 6px;
+            margin-top: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.15s;
+            white-space: nowrap;
+        }
+
+        button:active {
+            transform: translateY(1px) scale(0.99);
+            box-shadow: none;
+        }
+
+        #start-scan {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 3px 8px rgba(22,160,133,0.3);
+        }
+
+        #stop-scan {
+            background: #ecf0f1;
+            color: #34495e;
+        }
+
+        #add-row {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 3px 8px rgba(243,156,18,0.3);
+        }
+
+        #download-xlsx {
+            background: #3498db;
+            color: #fff;
+            box-shadow: 0 3px 8px rgba(52,152,219,0.3);
+        }
+
+        #clear-all {
+            background: #fbe9e7;
+            color: var(--danger);
+            border: 1px solid rgba(231,76,60,0.4);
+        }
+
+        td button {
+            padding: 3px 8px;
+            font-size: 12px;
+            border-radius: 999px;
+            background: #ffecec;
+            color: var(--danger);
+            border: 1px solid rgba(231,76,60,0.5);
+            box-shadow: none;
+        }
+
+        .scan-buttons,
+        .list-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        /* 表格區塊：可水平捲動，避免手機擠爆 */
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 6px;
+            border-radius: 8px;
+            border: 1px solid #e1e7ee;
+            background: #fff;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            min-width: 640px;
+        }
+
+        th, td {
+            padding: 4px 6px;
+            border-bottom: 1px solid #edf0f5;
+            text-align: center;
+        }
+
+        th {
+            background: #f5f7fb;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #fcfdff;
+        }
+
+        tbody tr:hover {
+            background: #f0faf8;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 8px;
+            }
+
+            button {
+                width: calc(50% - 6px);
+            }
+
+            #reader {
+                max-width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-<h1>盤點掃條碼工具（手機版）</h1>
+<div class="page-container">
+    <h1>盤點掃條碼工具（手機版）</h1>
 
-<div class="section">
-    <strong>說明：</strong>
-    <ul class="small">
-        <li>每一支手機的資料都存在自己的裝置內，不會和其他手機互相干擾</li>
-        <li>資料會一直留在這支手機裡，重新整理 / 關掉再打開都還在</li>
-        <li>匯出 Excel 之後資料也會保留，除非你自己刪除或按「清空全部」</li>
-    </ul>
-</div>
-
-<!-- 使用者區塊 -->
-<div class="section">
-    <h2 style="font-size: 16px; margin: 0 0 4px 0;">0. 使用者</h2>
-    <label>
-        使用者名稱：
-        <input type="text" id="user" placeholder="例如：小明、早班人員">
-    </label>
-</div>
-
-<!-- 掃描區塊 -->
-<div class="section">
-    <h2 style="font-size: 16px; margin: 0 0 4px 0;">1. 條碼掃描</h2>
-    <button id="start-scan">開始掃描</button>
-    <button id="stop-scan">停止掃描</button>
-    <div id="reader"></div>
-    <div id="last-result" class="small">最後掃描結果：尚未掃描</div>
-    <div id="zoom-hint" class="small"></div>
-    <div class="small" style="margin-top:4px;">
-        若裝置支援，在相機畫面上<strong>快速點兩下</strong>可在放大 / 還原之間切換數位變焦。<br>
-        若無法開啟相機，請確認：網址為 https、瀏覽器已允許相機權限。
+    <div class="section">
+        <h2>說明</h2>
+        <ul class="small">
+            <li>每一支手機的資料都存在自己的裝置內，不會和其他手機互相干擾</li>
+            <li>資料會一直留在這支手機裡，重新整理 / 關掉再打開都還在</li>
+            <li>匯出 Excel 之後資料也會保留，除非你自己刪除或按「清空全部」</li>
+        </ul>
     </div>
-</div>
 
-<!-- 資料輸入區 -->
-<div class="section">
-    <h2 style="font-size: 16px; margin: 0 0 4px 0;">2. 資料輸入</h2>
+    <!-- 使用者區塊 -->
+    <div class="section">
+        <h2>0. 使用者</h2>
+        <label>
+            使用者名稱：
+            <input type="text" id="user" placeholder="例如：小明、早班人員">
+        </label>
+    </div>
 
-    <label>
-        條碼：
-        <input type="text" id="barcode" placeholder="掃描後自動帶入，也可手動輸入">
-    </label>
-
-    <label>
-        品名：
-        <input type="text" id="name" placeholder="例如：得膚寶乳膏 15g">
-    </label>
-
-    <label>
-        效期（西元年 / 月 / 日）：
-        <div class="expiry-row">
-            <select id="exp-year">
-                <option value="">年</option>
-            </select>
-            <span>年</span>
-            <select id="exp-month">
-                <option value="">月</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-                <option value="7">7</option>
-                <option value="8">8</option>
-                <option value="9">9</option>
-                <option value="10">10</option>
-                <option value="11">11</option>
-                <option value="12">12</option>
-            </select>
-            <span>月</span>
-            <select id="exp-day">
-                <option value="">日</option>
-            </select>
-            <span>日（可留白）</span>
+    <!-- 掃描區塊 -->
+    <div class="section">
+        <h2>1. 條碼掃描</h2>
+        <div class="scan-buttons">
+            <button id="start-scan">開始掃描</button>
+            <button id="stop-scan">停止掃描</button>
         </div>
-    </label>
-
-    <label>
-        數量：
-        <input type="number" id="qty" min="1" value="1">
-    </label>
-
-    <label>
-        備註（例如：門市/庫房位置）：
-        <input type="text" id="note" placeholder="可不填">
-    </label>
-
-    <button id="add-row">加入清單</button>
-</div>
-
-<!-- 清單與下載 -->
-<div class="section">
-    <h2 style="font-size: 16px; margin: 0 0 4px 0;">3. 目前清單</h2>
-    <table>
-        <thead>
-        <tr>
-            <th>#</th>
-            <th>使用者</th>
-            <th>條碼</th>
-            <th>品名</th>
-            <th>效期</th>
-            <th>數量</th>
-            <th>備註</th>
-            <th>建立時間</th>
-            <th>刪除</th>
-        </tr>
-        </thead>
-        <tbody id="table-body">
-        </tbody>
-    </table>
-    <button id="download-xlsx">下載 Excel</button>
-    <button id="clear-all">清空全部</button>
-    <div class="small">⚠️ 清空全部會把這支手機目前的盤點資料全部刪除，且無法復原。</div>
-</div>
-
-<!-- 品名對照表匯入（可選） -->
-<div class="section">
-    <h2 style="font-size: 16px; margin: 0 0 4px 0;">4. 匯入品名對照表（可選）</h2>
-    <div class="small">
-        預設會使用內建寫在程式裡的文字檔。<br>
-        若上傳新的 .txt / .csv / .xlsx / .xls，會覆蓋內建對照表。<br>
-        TXT 可用 POS 匯出格式，或「條碼 品名」簡易格式。
+        <div id="reader"></div>
+        <div id="last-result" class="small">最後掃描結果：尚未掃描</div>
+        <div id="zoom-hint" class="small"></div>
+        <div class="small" style="margin-top:4px;">
+            若裝置支援，在相機畫面<strong>快速點兩下</strong>可在放大 / 還原之間切換數位變焦。<br>
+            若無法開啟相機，請確認：網址為 https、瀏覽器已允許相機權限。
+        </div>
     </div>
-    <input type="file" id="mapping-file" accept=".txt,.csv,.xlsx,.xls">
+
+    <!-- 資料輸入區 -->
+    <div class="section">
+        <h2>2. 資料輸入</h2>
+
+        <label>
+            條碼：
+            <input type="text" id="barcode" placeholder="掃描後自動帶入，也可手動輸入">
+        </label>
+
+        <label>
+            品名：
+            <input type="text" id="name" placeholder="例如：得膚寶乳膏 15g">
+        </label>
+
+        <label>
+            效期（西元年 / 月 / 日）：
+            <div class="expiry-row">
+                <select id="exp-year">
+                    <option value="">年</option>
+                </select>
+                <span>年</span>
+                <select id="exp-month">
+                    <option value="">月</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                    <option value="11">11</option>
+                    <option value="12">12</option>
+                </select>
+                <span>月</span>
+                <select id="exp-day">
+                    <option value="">日</option>
+                </select>
+                <span>日（可留白）</span>
+            </div>
+        </label>
+
+        <label>
+            數量：
+            <input type="number" id="qty" min="1" value="1">
+        </label>
+
+        <label>
+            備註（例如：門市/庫房位置）：
+            <input type="text" id="note" placeholder="可不填">
+        </label>
+
+        <button id="add-row">加入清單</button>
+    </div>
+
+    <!-- 清單與下載 -->
+    <div class="section">
+        <h2>3. 目前清單</h2>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                <tr>
+                    <th>#</th>
+                    <th>使用者</th>
+                    <th>條碼</th>
+                    <th>品名</th>
+                    <th>效期</th>
+                    <th>數量</th>
+                    <th>備註</th>
+                    <th>建立時間</th>
+                    <th>刪除</th>
+                </tr>
+                </thead>
+                <tbody id="table-body">
+                </tbody>
+            </table>
+        </div>
+        <div class="list-buttons">
+            <button id="download-xlsx">下載 Excel</button>
+            <button id="clear-all">清空全部</button>
+        </div>
+        <div class="small">⚠️ 清空全部會把這支手機目前的盤點資料全部刪除，且無法復原。</div>
+    </div>
+
+    <!-- 品名對照表匯入（可選） -->
+    <div class="section">
+        <h2>4. 匯入品名對照表（可選）</h2>
+        <div class="small">
+            預設會使用內建寫在程式裡的文字檔。<br>
+            若上傳新的 .txt / .csv / .xlsx / .xls，會覆蓋內建對照表。<br>
+            TXT 可用 POS 匯出格式，或「條碼 品名」簡易格式。
+        </div>
+        <input type="file" id="mapping-file" accept=".txt,.csv,.xlsx,.xls">
+    </div>
 </div>
 
 <script>
-    // ===== 內建品名對照表文字檔（請把你的 txt 整份貼在這裡） =====
+    // ===== 內建品名對照表文字檔（★你要貼資料的地方★） =====
     const BUILTIN_MAPPING_TEXT = `
 hou_no	hou_name	item_id	mcs_no	cname	mea	item_iid	exp_date	loc1	safe_qty1	safe_qty2	sh_all	avg_cost	in_price	sa_price	vip_price	stock
 02	祥威藥局	00222	A	商品抵用券(特殊商品)	張				0	0	0	0	0	0	0	0
@@ -4557,7 +4753,6 @@ hou_no	hou_name	item_id	mcs_no	cname	mea	item_iid	exp_date	loc1	safe_qty1	safe_q
         renderTable();
         saveRecordsToStorage();
 
-        // ★ 重置：條碼 & 品名清空，數量回 1
         barcodeInput.value = "";
         nameInput.value = "";
         qtyInput.value = "1";
