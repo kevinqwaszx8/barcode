@@ -15,201 +15,35 @@
             font-family: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
             margin: 10px;
         }
-        h1 {
-            font-size: 20px;
-            margin-bottom: 8px;
-        }
-        .section {
-            border: 1px solid #ccc;
-            padding: 8px;
-            margin-bottom: 10px;
-            border-radius: 6px;
-        }
-        label {
-            display: block;
-            margin-top: 6px;
-            font-size: 14px;
-        }
-        input, button, select, textarea {
-            font-size: 16px;
-            padding: 4px;
-            margin-top: 2px;
-        }
-        button {
-            margin-right: 6px;
-            margin-top: 8px;
-        }
-        #reader {
-            width: 100%;
-            max-width: 400px;
-            margin-top: 6px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12px;
-        }
-        th, td {
-            border: 1px solid #ccc;
-            padding: 4px;
-            text-align: center;
-        }
-        th {
-            background: #f0f0f0;
-        }
-        .small {
-            font-size: 12px;
-            color: #666;
-        }
-        .expiry-row {
-            display: flex;
-            gap: 4px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        #last-result {
-            font-size: 13px;
-            color: #333;
-            margin-top: 4px;
-        }
-        #zoom-hint {
-            margin-top: 2px;
-        }
+        h1 { font-size: 20px; margin-bottom: 8px; }
+        .section { border: 1px solid #ccc; padding: 8px; margin-bottom: 10px; border-radius: 6px; }
+        label { display: block; margin-top: 6px; font-size: 14px; }
+        input, button, select { font-size: 16px; padding: 4px; margin-top: 2px; }
+        #reader { width: 100%; max-width: 400px; margin-top: 6px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th, td { border: 1px solid #ccc; padding: 4px; text-align: center; }
+        th { background: #f0f0f0; }
+        .small { font-size: 12px; color: #666; }
+        .expiry-row { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+        #last-result { font-size: 13px; margin-top: 4px; }
     </style>
 </head>
 <body>
 <h1>盤點掃條碼工具（手機版）</h1>
 
+<!-- 說明 -->
 <div class="section">
     <strong>說明：</strong>
     <ul class="small">
-        <li>每一支手機的資料都存在自己的裝置內，不會和其他手機互相干擾</li>
-        <li>資料會一直留在這支手機裡，重新整理 / 關掉再打開都還在</li>
-        <li>匯出 Excel 之後資料也會保留，除非你自己刪除或按「清空全部」</li>
+        <li>資料存於本機，不會與其他手機互相干擾</li>
+        <li>重新整理 / 關掉網頁後，資料依然存在</li>
+        <li>匯出 Excel 不會清空資料</li>
     </ul>
 </div>
 
-<!-- 使用者區塊 -->
-<div class="section">
-    <h2 style="font-size: 16px; margin: 0 0 4px 0;">0. 使用者</h2>
-    <label>
-        使用者名稱：
-        <input type="text" id="user" placeholder="例如：小明、早班人員">
-    </label>
-    <div class="small">
-        使用者名稱只跟著目前這一份資料，不會永久記錄到裝置設定。<br>
-        每一筆資料會把「使用者」一起寫入 Excel。
-    </div>
-</div>
-
-<!-- 掃描區塊 -->
-<div class="section">
-    <h2 style="font-size: 16px; margin: 0 0 4px 0;">1. 條碼掃描</h2>
-    <button id="start-scan">開始掃描</button>
-    <button id="stop-scan">停止掃描</button>
-    <div id="reader"></div>
-    <div id="last-result" class="small">最後掃描結果：尚未掃描</div>
-    <div id="zoom-hint" class="small"></div>
-    <div class="small" style="margin-top:4px;">
-        提示：若裝置支援，相機畫面上<strong>快速點兩下</strong>可在「放大 / 還原」之間切換數位變焦。<br>
-        若無法開啟相機，請確認：<br>
-        1. 網址是 <strong>https</strong>（GitHub Pages 已符合）<br>
-        2. 手機已允許瀏覽器使用相機（到系統設定裡的 Safari / Chrome 檢查權限）<br>
-        3. 掃一般商品條碼（EAN-13 / UPC / CODE-128 等）
-    </div>
-</div>
-
-<!-- 資料輸入區 -->
-<div class="section">
-    <h2 style="font-size: 16px; margin: 0 0 4px 0;">2. 資料輸入</h2>
-
-    <label>
-        條碼：
-        <input type="text" id="barcode" placeholder="掃描後自動帶入，也可手動輸入">
-    </label>
-
-    <label>
-        品名：
-        <input type="text" id="name" placeholder="例如：得膚寶乳膏 15g">
-    </label>
-
-    <label>
-        效期（西元年 / 月 / 日）：
-        <div class="expiry-row">
-            <select id="exp-year">
-                <option value="">年</option>
-            </select>
-            <span>年</span>
-            <select id="exp-month">
-                <option value="">月</option>
-                <option value="1">1</option><option value="2">2</option>
-                <option value="3">3</option><option value="4">4</option>
-                <option value="5">5</option><option value="6">6</option>
-                <option value="7">7</option><option value="8">8</option>
-                <option value="9">9</option><option value="10">10</option>
-                <option value="11">11</option><option value="12">12</option>
-            </select>
-            <span>月</span>
-            <select id="exp-day">
-                <option value="">日</option>
-            </select>
-            <span>日（可留白）</span>
-        </div>
-    </label>
-
-    <label>
-        數量：
-        <input type="number" id="qty" min="1" value="1">
-    </label>
-
-    <label>
-        備註（例如：門市/庫房位置）：
-        <input type="text" id="note" placeholder="可不填">
-    </label>
-
-    <button id="add-row">加入清單</button>
-</div>
-
-<!-- 清單與下載 -->
-<div class="section">
-    <h2 style="font-size: 16px; margin: 0 0 4px 0;">3. 目前清單</h2>
-    <table>
-        <thead>
-        <tr>
-            <th>#</th>
-            <th>使用者</th>
-            <th>條碼</th>
-            <th>品名</th>
-            <th>效期</th>
-            <th>數量</th>
-            <th>備註</th>
-            <th>建立時間</th>
-            <th>刪除</th>
-        </tr>
-        </thead>
-        <tbody id="table-body">
-        </tbody>
-    </table>
-    <button id="download-xlsx">下載 Excel</button>
-    <button id="clear-all">清空全部</button>
-    <div class="small">⚠️ 清空全部會把這支手機目前的盤點資料全部刪除，且無法復原。</div>
-</div>
-
-<!-- 品名對照表匯入（可選） -->
-<div class="section">
-    <h2 style="font-size: 16px; margin: 0 0 4px 0;">4. 匯入品名對照表（可選）</h2>
-    <div class="small">
-        預設已內建一份文字檔（寫在程式裡），可另外上傳新的 .txt / .csv / .xlsx / .xls 取代。<br>
-        推薦使用從系統匯出的文字檔，例如：<br>
-        <code>02  祥威藥局  4715066603688  K6  固常樂-BC順暢2g*30包  盒  4715066603688  2027/10/11 ...</code><br>
-        也支援簡單格式：<code>條碼,品名</code> 或 <code>條碼 品名</code>。
-    </div>
-    <input type="file" id="mapping-file" accept=".txt,.csv,.xlsx,.xls">
-</div>
-
+<!-- 內建品名對照表（你要把 POS 檔案貼在這裡） -->
 <script>
-    // ===== 內建品名對照表文字檔（請把你的 txt 全部貼在這裡） =====
-    const BUILTIN_MAPPING_TEXT = `
+const BUILTIN_MAPPING_TEXT = `
 hou_no	hou_name	item_id	mcs_no	cname	mea	item_iid	exp_date	loc1	safe_qty1	safe_qty2	sh_all	avg_cost	in_price	sa_price	vip_price	stock
 02	祥威藥局	00222	A	商品抵用券(特殊商品)	張				0	0	0	0	0	0	0	0
 02	祥威藥局	4715459538054	A	悍馬仕膜衣錠5毫克28粒	盒	4715459538054	2026/10/31 00:00:00	7B	0	0	0	565.833	0	1600.000	0	1.000
@@ -4115,596 +3949,392 @@ hou_no	hou_name	item_id	mcs_no	cname	mea	item_iid	exp_date	loc1	safe_qty1	safe_q
 02	祥威藥局	4711061322814	Z	~肌光雙V面膜(25ml*5片)	盒	4711061322814	2026/6/8 00:00:00		0	0	0	460.000	0	699.000	0	1.000
 
 `;
+</script>
 
-    // ===== 共用：從文字內容建立「條碼 → 品名」對照表 =====
-    function parseBarcodeNameMapFromText(text) {
-        const lines = text.split(/\r?\n/);
-        const map = {};
-        const isBarcode = v => /^[0-9]{6,}$/.test((v || "").trim());
+<!-- 使用者 -->
+<div class="section">
+    <h2 style="font-size: 16px; margin: 0 0 4px 0;">0. 使用者</h2>
+    <label>使用者名稱：<input type="text" id="user"></label>
+</div>
 
-        for (let i = 0; i < lines.length; i++) {
-            let line = lines[i].trim();
-            if (!line) continue;
+<!-- 掃描 -->
+<div class="section">
+    <h2 style="font-size: 16px; margin: 0 0 4px 0;">1. 條碼掃描</h2>
+    <button id="start-scan">開始掃描</button>
+    <button id="stop-scan">停止掃描</button>
+    <div id="reader"></div>
+    <div id="last-result" class="small">尚未掃描</div>
+    <div id="zoom-hint" class="small"></div>
+</div>
 
-            // 若是 POS 匯出的表頭（包含 hou_no），第一行跳過
-            if (i === 0 && line.indexOf("hou_no") !== -1) {
-                continue;
-            }
+<!-- 資料輸入 -->
+<div class="section">
+    <h2 style="font-size: 16px; margin: 0 0 4px 0;">2. 資料輸入</h2>
 
-            // 先嘗試用 Tab 切
-            let cols = line.split(/\t+/);
-            if (cols.length < 3) {
-                // 不夠就用逗號 / 多空白切
-                cols = line.split(/[\s,]+/);
-            }
+    <label>條碼：<input type="text" id="barcode"></label>
+    <label>品名：<input type="text" id="name"></label>
 
-            let barcode = "";
-            let name = "";
+    <label>效期：
+        <div class="expiry-row">
+            <select id="exp-year"><option value="">年</option></select>年
+            <select id="exp-month"><option value="">月</option>
+                ${[...Array(12)].map((_,i)=>`<option value="${i+1}">${i+1}</option>`).join("")}
+            </select>月
+            <select id="exp-day"><option value="">日</option></select>日
+        </div>
+    </label>
 
-            if (cols.length >= 7) {
-                // 假設為 POS 多欄格式：
-                // 0:分店, 1:藥局名, 2:item_id(條碼), 3:庫別, 4:品名, 5:單位, 6:item_iid(條碼)
-                const item_id  = (cols[2] || "").trim();
-                const cname    = (cols[4] || "").trim();
-                const item_iid = (cols[6] || "").trim();
-                if (!cname) continue;
+    <label>數量：<input type="number" id="qty" min="1" value="1"></label>
+    <label>備註：<input type="text" id="note"></label>
 
-                if (isBarcode(item_iid)) {
-                    barcode = item_iid;
-                } else if (isBarcode(item_id)) {
-                    barcode = item_id;
-                }
+    <button id="add-row">加入清單</button>
+</div>
+
+<!-- 清單區 -->
+<div class="section">
+    <h2 style="font-size: 16px; margin: 0 0 4px 0;">3. 清單</h2>
+
+    <table>
+        <thead>
+        <tr>
+            <th>#</th><th>使用者</th><th>條碼</th><th>品名</th>
+            <th>效期</th><th>數量</th><th>備註</th><th>時間</th><th>刪除</th>
+        </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+    </table>
+
+    <button id="download-xlsx">下載 Excel</button>
+    <button id="clear-all">清空全部</button>
+</div>
+
+<!-- 匯入品名對照表 -->
+<div class="section">
+    <h2 style="font-size: 16px; margin: 0 0 4px 0;">4. 匯入品名對照表（可覆蓋內建）</h2>
+    <input type="file" id="mapping-file" accept=".txt,.csv,.xlsx,.xls">
+</div>
+
+<script>
+/* ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+   工具：解析 POS / TXT 商品對照表
+   ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝ */
+function parseBarcodeNameMapFromText(text) {
+    const lines = text.split(/\r?\n/);
+    const map = {};
+    const isBarcode = v => /^[0-9]{6,}$/.test(v);
+
+    for (let line of lines) {
+        line = line.trim();
+        if (!line) continue;
+
+        let cols = line.split(/\t+/);
+        if (cols.length < 3) cols = line.split(/[\s,]+/);
+
+        let barcode = "";
+        let name = "";
+
+        if (cols.length >= 7) {
+            const item_id = cols[2];
+            const cname = cols[4];
+            const item_iid = cols[6];
+            if (cname) {
+                barcode = isBarcode(item_iid) ? item_iid :
+                          isBarcode(item_id)  ? item_id  : "";
                 name = cname;
-            } else if (cols.length >= 2) {
-                // 簡單格式：條碼 品名
-                const bc = cols[0].trim();
-                const nm = cols.slice(1).join(" ").trim();
-                if (isBarcode(bc) && nm) {
-                    barcode = bc;
-                    name = nm;
-                }
             }
-
-            if (barcode && name) {
-                map[barcode] = name;
+        } else if (cols.length >= 2) {
+            if (isBarcode(cols[0])) {
+                barcode = cols[0];
+                name = cols.slice(1).join(" ");
             }
         }
 
-        return map;
+        if (barcode && name) map[barcode] = name;
     }
-
-    // ===== 基本變數 =====
-    const STORAGE_KEY = "inventory_records_v2";  // 每支手機自己的資料空間
-
-    const records = [];  // 目前這一輪的資料（會同步到 localStorage）
-
-    const userInput    = document.getElementById("user");
-    const barcodeInput = document.getElementById("barcode");
-    const nameInput    = document.getElementById("name");
-    const expYearSel   = document.getElementById("exp-year");
-    const expMonthSel  = document.getElementById("exp-month");
-    const expDaySel    = document.getElementById("exp-day");
-    const qtyInput     = document.getElementById("qty");
-    const noteInput    = document.getElementById("note");
-    const tableBody    = document.getElementById("table-body");
-    const lastResultEl = document.getElementById("last-result");
-    const zoomHintEl   = document.getElementById("zoom-hint");
-    const mappingInput = document.getElementById("mapping-file");
-
-    const startScanBtn    = document.getElementById("start-scan");
-    const stopScanBtn     = document.getElementById("stop-scan");
-    const addRowBtn       = document.getElementById("add-row");
-    const downloadXlsxBtn = document.getElementById("download-xlsx");
-    const clearAllBtn     = document.getElementById("clear-all");
-
-    let html5QrCode = null;
-    let scanning = false;
-
-    // 變焦相關（使用原生 MediaStreamTrack）
-    let videoTrack = null;
-    let zoomSupported = false;
-    let zoomMin = 1;
-    let zoomMax = 1;
-    let zoomCurrent = 1;
-
-    // 條碼 → 品名 對照表
-    let barcodeNameMap = {};
-
-    // ===== 工具：取得本機時間字串（YYYY-MM-DD HH:MM:SS） =====
-    function getLocalDateTimeString() {
-        const now = new Date();
-        const pad = n => String(n).padStart(2, "0");
-        const y = now.getFullYear();
-        const m = pad(now.getMonth() + 1);
-        const d = pad(now.getDate());
-        const hh = pad(now.getHours());
-        const mm = pad(now.getMinutes());
-        const ss = pad(now.getSeconds());
-        return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
-    }
-
-    // ===== 儲存 / 載入：資料永遠保留，除非手動清除 =====
-    function saveRecordsToStorage() {
-        try {
-            const obj = { records: records };
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
-        } catch (e) {
-            console.warn("儲存資料到 localStorage 失敗：", e);
-        }
-    }
-
-    function loadRecordsFromStorage() {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return;
-            const obj = JSON.parse(raw);
-            if (!obj || !Array.isArray(obj.records)) return;
-
-            obj.records.forEach(r => records.push(r));
-            renderTable();
-        } catch (e) {
-            console.warn("載入資料從 localStorage 失敗：", e);
-        }
-    }
-
-    // ===== 初始化：效期選單 + 載入既有資料 + 內建對照表 =====
-    (function init() {
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const maxYear = currentYear + 10;
-
-        for (let y = currentYear; y <= maxYear; y++) {
-            const opt = document.createElement("option");
-            opt.value = y;
-            opt.textContent = y;
-            expYearSel.appendChild(opt);
-        }
-
-        for (let d = 1; d <= 31; d++) {
-            const opt = document.createElement("option");
-            opt.value = d;
-            opt.textContent = d;
-            expDaySel.appendChild(opt);
-        }
-
-        loadRecordsFromStorage();
-
-        // 解析內建文字檔
-        if (BUILTIN_MAPPING_TEXT && BUILTIN_MAPPING_TEXT.trim()) {
-            try {
-                const map = parseBarcodeNameMapFromText(BUILTIN_MAPPING_TEXT);
-                barcodeNameMap = map;
-                console.log("內建品名對照筆數：", Object.keys(barcodeNameMap).length);
-                // 如需提示可以打開這行：
-                // alert("已載入內建品名對照，共 " + Object.keys(barcodeNameMap).length + " 筆");
-            } catch (e) {
-                console.warn("解析內建品名對照失敗：", e);
-            }
-        }
-    })();
-
-    // ===== 變焦提示 =====
-    function setZoomHint(text) {
-        zoomHintEl.textContent = text || "";
-    }
-
-    // 取得相機 zoom 能力並綁定 double-tap
-    function setupTapZoom() {
-        const video = document.querySelector("#reader video");
-        if (!video || !video.srcObject) {
-            setZoomHint("");
-            return;
-        }
-        const tracks = video.srcObject.getVideoTracks();
-        if (!tracks || tracks.length === 0) {
-            setZoomHint("");
-            return;
-        }
-
-        videoTrack = tracks[0];
-        zoomSupported = false;
-
-        try {
-            const caps = videoTrack.getCapabilities && videoTrack.getCapabilities();
-            if (caps && caps.zoom) {
-                zoomSupported = true;
-                zoomMin = caps.zoom.min ?? 1;
-                zoomMax = caps.zoom.max ?? caps.zoom.min ?? 1;
-                zoomCurrent = caps.zoom.default ?? zoomMin;
-                if (zoomMin === zoomMax) {
-                    zoomSupported = false;
-                }
-            }
-        } catch (e) {
-            console.warn("讀取變焦能力失敗：", e);
-            zoomSupported = false;
-        }
-
-        if (!zoomSupported) {
-            setZoomHint("此裝置可能不支援相機數位變焦（可改用移動距離靠近一點）。");
-            return;
-        }
-
-        setZoomHint("支援數位變焦：在相機畫面上『快速點兩下』可在放大 / 還原之間切換。");
-
-        let lastTapTime = 0;
-
-        function toggleZoom() {
-            if (!zoomSupported) return;
-            let targetZoom;
-            if (zoomCurrent <= zoomMin + 0.05) {
-                targetZoom = zoomMax;
-            } else {
-                targetZoom = zoomMin;
-            }
-            applyZoom(targetZoom);
-        }
-
-        video.addEventListener("touchend", e => {
-            const now = Date.now();
-            if (now - lastTapTime < 300) {
-                e.preventDefault();
-                toggleZoom();
-            }
-            lastTapTime = now;
-        }, { passive: false });
-
-        video.addEventListener("dblclick", e => {
-            e.preventDefault();
-            toggleZoom();
-        });
-    }
-
-    function applyZoom(targetZoom) {
-        if (!zoomSupported || !videoTrack || !videoTrack.applyConstraints) return;
-        videoTrack.applyConstraints({ advanced: [{ zoom: targetZoom }] })
-            .then(() => {
-                zoomCurrent = targetZoom;
-            })
-            .catch(err => {
-                console.warn("套用變焦失敗：", err);
-            });
-    }
-
-    // ===== 依條碼自動帶入品名 =====
-    function autoFillNameFromBarcode(barcode) {
-        if (!barcode) return;
-        if (!barcodeNameMap || Object.keys(barcodeNameMap).length === 0) return;
-
-        const name = barcodeNameMap[String(barcode).trim()];
-        if (name) {
-            if (!nameInput.value.trim()) {
-                nameInput.value = name;
-            }
-        }
-    }
-
-    // 條碼輸入框手動改變時也自動帶品名
-   barcodeInput.addEventListener("change", function () {
-    // 條碼被改了，先清空品名與數量
-    nameInput.value = "";
-    qtyInput.value = "";
-
-    autoFillNameFromBarcode(barcodeInput.value);
-});
-
-
-    // ===== 匯入品名對照表（可覆蓋內建） =====
-    mappingInput && mappingInput.addEventListener("change", function (e) {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const ext = file.name.split(".").pop().toLowerCase();
-
-        // TXT / CSV 處理
-        if (["txt", "csv"].includes(ext)) {
-            const reader = new FileReader();
-            reader.onload = function (ev) {
-                try {
-                    const text = ev.target.result;
-                    const map = parseBarcodeNameMapFromText(text);
-                    barcodeNameMap = map;
-                    alert(`文字對照表已載入，共 ${Object.keys(map).length} 筆。`);
-                } catch (err) {
-                    console.error("解析文字檔失敗：", err);
-                    alert("解析文字檔失敗，請檢查內容格式。");
-                }
-            };
-            reader.readAsText(file, "UTF-8");
-            return;
-        }
-
-        // Excel 處理
-        const reader = new FileReader();
-        reader.onload = function (ev) {
-            try {
-                const data = new Uint8Array(ev.target.result);
-                const workbook = XLSX.read(data, { type: "array" });
-
-                const firstSheetName = workbook.SheetNames[0];
-                const ws = workbook.Sheets[firstSheetName];
-
-                const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false });
-                if (!rows.length) {
-                    alert("Excel 對照表是空的");
-                    return;
-                }
-
-                const header = rows[0].map(h => String(h || "").trim());
-                const barcodeIdx = header.findIndex(h =>
-                    ["barcode", "條碼", "條碼號碼"].includes(h)
-                );
-                const nameIdx = header.findIndex(h =>
-                    ["name", "品名", "商品名稱"].includes(h)
-                );
-
-                if (barcodeIdx === -1 || nameIdx === -1) {
-                    alert("Excel 找不到條碼 / 品名 欄位");
-                    return;
-                }
-
-                const map = {};
-                for (let i = 1; i < rows.length; i++) {
-                    const row = rows[i];
-                    if (!row) continue;
-
-                    const bc = row[barcodeIdx];
-                    const nm = row[nameIdx];
-                    if (!bc || !nm) continue;
-
-                    map[String(bc).trim()] = String(nm).trim();
-                }
-
-                barcodeNameMap = map;
-                alert("Excel 對照表已載入，共 " + Object.keys(barcodeNameMap).length + " 筆。");
-            } catch (err) {
-                console.error("Excel 讀取失敗：", err);
-                alert("Excel 讀取失敗，請確認格式是否正確。");
-            }
-        };
-        reader.readAsArrayBuffer(file);
-    });
-
-    // ===== 1. 開始 / 停止 掃描（穩定設定） =====
-    startScanBtn.addEventListener("click", async function() {
-        try {
-            if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode("reader");
-            }
-            if (scanning) return;
-
-            const config = {
-                fps: 20,
-                qrbox: function(viewportWidth, viewportHeight) {
-                    const width = Math.min(viewportWidth * 0.9, 360);
-                    const height = Math.round(width * 0.35);
-                    return { width, height };
-                },
-                aspectRatio: 4 / 3,
-                formatsToSupport: [
-                    Html5QrcodeSupportedFormats.EAN_13,
-                    Html5QrcodeSupportedFormats.EAN_8,
-                    Html5QrcodeSupportedFormats.UPC_A,
-                    Html5QrcodeSupportedFormats.UPC_E,
-                    Html5QrcodeSupportedFormats.CODE_128,
-                    Html5QrcodeSupportedFormats.CODE_39,
-                    Html5QrcodeSupportedFormats.CODE_93,
-                    Html5QrcodeSupportedFormats.CODABAR
-                ],
-                experimentalFeatures: {
-                    useBarCodeDetectorIfSupported: true
-                },
-                disableFlip: true,
-                rememberLastUsedCamera: true
-            };
-
-            function onScanSuccess(decodedText, decodedResult) {
-    console.log("Scan success:", decodedText, decodedResult);
-
-    // 先清空上一筆輸入
-    barcodeInput.value = "";
-    nameInput.value = "";
-    qtyInput.value = "";
-
-    // 再寫入新條碼
-    barcodeInput.value = decodedText;
-    lastResultEl.textContent = "最後掃描結果：" + decodedText;
-
-    // 自動帶入品名（會填到剛清空的 name）
-    autoFillNameFromBarcode(decodedText);
+    return map;
 }
 
+/* ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+   全域變數
+   ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝ */
+let barcodeNameMap = {};
+let records = [];
+const STORAGE_KEY = "inventory_records_v3";
 
-            function onScanError(errorMessage) {
-                // 噪音太多就不顯示，只留在 console
-            }
+const barcodeInput = document.getElementById("barcode");
+const nameInput = document.getElementById("name");
+const qtyInput = document.getElementById("qty");
+const tableBody = document.getElementById("table-body");
+const mappingInput = document.getElementById("mapping-file");
+const lastResultEl = document.getElementById("last-result");
 
-            await html5QrCode.start(
-                { facingMode: "environment" },
-                config,
-                onScanSuccess,
-                onScanError
-            );
-            scanning = true;
-            lastResultEl.textContent = "最後掃描結果：掃描中...";
-            setZoomHint("檢查是否支援雙擊數位變焦中…");
+let html5QrCode = null;
+let scanning = false;
+let videoTrack = null;
+let zoomSupported = false;
 
-            setTimeout(setupTapZoom, 500);
+/* ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+   初始化
+   ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝ */
+(function init() {
 
-        } catch (err) {
-            console.error("啟動掃描失敗：", err);
-            alert("啟動相機失敗，請確認已允許相機權限，或改用 Chrome 試試看。");
-        }
-    });
-
-    stopScanBtn.addEventListener("click", async function() {
-        if (html5QrCode && scanning) {
-            try {
-                await html5QrCode.stop();
-                await html5QrCode.clear();
-            } catch (err) {
-                console.error("停止掃描失敗：", err);
-            }
-            scanning = false;
-            lastResultEl.textContent = "最後掃描結果：已停止掃描";
-            setZoomHint("");
-            videoTrack = null;
-            zoomSupported = false;
-        }
-    });
-
-    // ===== 2. 加入清單 =====
-    addRowBtn.addEventListener("click", function() {
-        const user    = userInput.value.trim();
-        const barcode = barcodeInput.value.trim();
-        const name    = nameInput.value.trim();
-        const year    = expYearSel.value;
-        const month   = expMonthSel.value;
-        const day     = expDaySel.value;
-        const qty     = qtyInput.value.trim();
-        const note    = noteInput.value.trim();
-
-        if (!barcode) {
-            alert("請先輸入或掃描條碼");
-            return;
-        }
-        if (!qty || Number(qty) <= 0) {
-            alert("請輸入正確的數量");
-            return;
-        }
-
-        let expiryDisplay = "";
-        let expiryCsv = "";
-        if (year || month || day) {
-            const y = year || "";
-            const m = month ? String(month).padStart(2, "0") : "";
-            const d = day ? String(day).padStart(2, "0") : "";
-            expiryDisplay = [y, m ? m : "", d ? d : ""].filter(x => x).join("/");
-            if (year && month && day) {
-                expiryCsv = `${y}-${m}-${d}`;
-            } else {
-                expiryCsv = expiryDisplay;
-            }
-        }
-
-        const createdAt = getLocalDateTimeString();
-
-       records.push({
-    user:   user,
-    barcode: barcode,
-    name:    name,
-    expiryDisplay: expiryDisplay,
-    expiryCsv:     expiryCsv,
-    qty:     qty,
-    note:    note,
-    createdAt: createdAt
-});
-
-renderTable();
-saveRecordsToStorage();
-
-// ★ 加入清單後，條碼 / 品名 / 數量 都清空
-barcodeInput.value = "";
-nameInput.value = "";
-qtyInput.value = "1";
-
-
-    function renderTable() {
-        tableBody.innerHTML = "";
-        records.forEach((rec, index) => {
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-                <td>${index + 1}</td>
-                <td>${rec.user || ""}</td>
-                <td>${rec.barcode}</td>
-                <td>${rec.name || ""}</td>
-                <td>${rec.expiryDisplay || ""}</td>
-                <td>${rec.qty}</td>
-                <td>${rec.note || ""}</td>
-                <td>${rec.createdAt}</td>
-                <td><button data-index="${index}">刪除</button></td>
-            `;
-            tableBody.appendChild(tr);
-        });
-
-        Array.from(tableBody.querySelectorAll("button[data-index]")).forEach(btn => {
-            btn.addEventListener("click", function() {
-                const i = Number(this.getAttribute("data-index"));
-                records.splice(i, 1);
-                renderTable();
-                saveRecordsToStorage();
-            });
-        });
+    // 效期日數
+    for (let d = 1; d <= 31; d++) {
+        document.getElementById("exp-day").innerHTML += `<option value="${d}">${d}</option>`;
     }
 
-    // ===== 3. 匯出 Excel .xlsx（不清空資料，條碼為純文字） =====
-    downloadXlsxBtn.addEventListener("click", function() {
-        if (records.length === 0) {
-            alert("目前沒有資料，無法匯出");
-            return;
-        }
-
-        const data = [];
-        data.push(["使用者", "條碼", "品名", "效期", "數量", "備註", "建立時間"]);
-
-        records.forEach(rec => {
-            data.push([
-                rec.user || "",
-                rec.barcode + "",   // 強制用字串
-                rec.name || "",
-                rec.expiryCsv || rec.expiryDisplay || "",
-                rec.qty || "",
-                rec.note || "",
-                rec.createdAt || ""
-            ]);
-        });
-
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.aoa_to_sheet(data);
-
-        // 把條碼那一欄（B 欄）強制設為文字格式
-        for (let r = 1; r <= data.length; r++) {
-            const cell = ws[`B${r}`];
-            if (cell) {
-                cell.t = "s";  // cell type: string
-                cell.z = "@";  // 格式：文字
-            }
-        }
-
-        XLSX.utils.book_append_sheet(wb, ws, "盤點");
-
-        const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-        const blob = new Blob([wbout], {
-            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        });
-
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        const today = new Date().toISOString().slice(0,10);
-        a.href = url;
-        a.download = `inventory_${today}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        alert("已匯出 Excel（資料仍保留在這支手機中，如需清掉請按「清空全部」或逐筆刪除）。");
-    });
-
-    // ===== 4. 清空全部資料 =====
-    clearAllBtn.addEventListener("click", function() {
-        if (!confirm("確定要清空全部資料嗎？這支手機目前的盤點資料會全部刪除，且無法復原。")) {
-            return;
-        }
-        records.length = 0;
+    // 從 localStorage 載入資料
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+        records = JSON.parse(saved).records || [];
         renderTable();
-        try {
-            localStorage.removeItem(STORAGE_KEY);
-        } catch (e) {
-            console.warn("清除 localStorage 失敗：", e);
+    }
+
+    // 載入內建商品表
+    barcodeNameMap = parseBarcodeNameMapFromText(BUILTIN_MAPPING_TEXT);
+
+})();
+/* ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+   掃描成功 → 清空舊資料 → 填入新條碼
+   ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝ */
+function onScanSuccess(decodedText) {
+
+    // 先清空全部欄位
+    barcodeInput.value = "";
+    nameInput.value = "";
+    qtyInput.value = "1";
+
+    // 放入新條碼
+    barcodeInput.value = decodedText;
+    lastResultEl.textContent = "掃描成功：" + decodedText;
+
+    // 自動帶品名
+    autoFillName(decodedText);
+}
+
+/* ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+   手動輸入條碼 → 清空品名、數量
+   ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝ */
+barcodeInput.addEventListener("input", function() {
+    nameInput.value = "";
+    qtyInput.value = "1";
+    autoFillName(barcodeInput.value);
+});
+
+/* ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+   自動帶品名
+   ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝ */
+function autoFillName(barcode) {
+    const name = barcodeNameMap[barcode];
+    if (name) nameInput.value = name;
+}
+
+/* ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+   匯入其他 txt / excel 對照表
+   ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝ */
+mappingInput.addEventListener("change", function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const ext = file.name.split(".").pop().toLowerCase();
+
+    // txt / csv
+    if (["txt", "csv"].includes(ext)) {
+        const reader = new FileReader();
+        reader.onload = ev => {
+            barcodeNameMap = parseBarcodeNameMapFromText(ev.target.result);
+            alert("文字品名表載入成功，共 " + Object.keys(barcodeNameMap).length + " 筆");
+        };
+        reader.readAsText(file, "UTF-8");
+        return;
+    }
+
+    // Excel
+    const reader = new FileReader();
+    reader.onload = ev => {
+        const wb = XLSX.read(new Uint8Array(ev.target.result), { type: "array" });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+        const map = {};
+        rows.forEach(r => {
+            if (r.length >= 2) {
+                const bc = String(r[0]).trim();
+                const nm = String(r[1]).trim();
+                if (/^[0-9]{6,}$/.test(bc)) map[bc] = nm;
+            }
+        });
+
+        barcodeNameMap = map;
+        alert("Excel 品名表載入成功：" + Object.keys(map).length + " 筆");
+    };
+    reader.readAsArrayBuffer(file);
+});
+
+/* ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+   開始掃描
+   ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝ */
+document.getElementById("start-scan").onclick = async () => {
+    if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+    if (scanning) return;
+
+    const config = {
+        fps: 20,
+        qrbox: { width: 360, height: 120 },
+        formatsToSupport: [
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39
+        ]
+    };
+
+    await html5QrCode.start(
+        { facingMode: "environment" },
+        config,
+        onScanSuccess
+    );
+
+    scanning = true;
+
+    // 取得變焦能力
+    setTimeout(() => {
+        const video = document.querySelector("#reader video");
+        if (!video) return;
+
+        const track = video.srcObject.getVideoTracks()[0];
+        const caps = track.getCapabilities && track.getCapabilities();
+        if (caps && caps.zoom) {
+            zoomSupported = true;
+            video.addEventListener("dblclick", () => {
+                const target = caps.zoom.max > 3 ? 3 : caps.zoom.max;
+                track.applyConstraints({ advanced: [{ zoom: target }] });
+            });
         }
+    }, 500);
+};
+
+/* ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+   停止掃描
+   ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝ */
+document.getElementById("stop-scan").onclick = async () => {
+    if (html5QrCode && scanning) {
+        await html5QrCode.stop();
+        await html5QrCode.clear();
+    }
+    scanning = false;
+};
+
+/* ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+   加入清單 → 清空欄位（條碼、品名清空；數量回 1）
+   ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝ */
+document.getElementById("add-row").onclick = () => {
+    const rec = {
+        user: document.getElementById("user").value,
+        barcode: barcodeInput.value,
+        name: nameInput.value,
+        expiry: buildExpiry(),
+        qty: qtyInput.value,
+        note: document.getElementById("note").value,
+        time: new Date().toLocaleString()
+    };
+
+    if (!rec.barcode) return alert("請先填條碼");
+    if (!rec.qty || rec.qty <= 0) return alert("數量錯誤");
+
+    records.push(rec);
+    saveRecords();
+    renderTable();
+
+    // ★ 依你的要求：加入清單後清空條碼＋品名；數量回 1
+    barcodeInput.value = "";
+    nameInput.value = "";
+    qtyInput.value = "1";
+};
+
+/* 效期組合 */
+function buildExpiry() {
+    const y = document.getElementById("exp-year").value;
+    const m = document.getElementById("exp-month").value;
+    const d = document.getElementById("exp-day").value;
+    if (!y && !m && !d) return "";
+    return [y, m, d].filter(x => x).join("/");
+}
+
+/* ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+   渲染表格
+   ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝ */
+function renderTable() {
+    tableBody.innerHTML = "";
+    records.forEach((r,i) => {
+        tableBody.innerHTML += `
+        <tr>
+            <td>${i+1}</td>
+            <td>${r.user}</td>
+            <td>${r.barcode}</td>
+            <td>${r.name}</td>
+            <td>${r.expiry}</td>
+            <td>${r.qty}</td>
+            <td>${r.note}</td>
+            <td>${r.time}</td>
+            <td><button onclick="delRow(${i})">刪除</button></td>
+        </tr>`;
     });
+}
+
+function delRow(i) {
+    records.splice(i,1);
+    saveRecords();
+    renderTable();
+}
+
+/* ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+   localStorage
+   ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝ */
+function saveRecords() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({records}));
+}
+
+/* ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+   匯出 Excel（條碼欄強制文字格式）
+   ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝ */
+document.getElementById("download-xlsx").onclick = () => {
+
+    const data = [["使用者","條碼","品名","效期","數量","備註","時間"]];
+    records.forEach(r => {
+        data.push([
+            r.user,
+            String(r.barcode),
+            r.name,
+            r.expiry,
+            r.qty,
+            r.note,
+            r.time
+        ]);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(data);
+
+    // 把 B 欄（條碼）強制為文字格式
+    Object.keys(ws).forEach(key => {
+        if (key.startsWith("B")) ws[key].t = "s";
+    });
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "盤點");
+
+    XLSX.writeFile(wb, "inventory.xlsx");
+};
+
+/* ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+   清空全部
+   ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝ */
+document.getElementById("clear-all").onclick = () => {
+    if (!confirm("確定要清空？")) return;
+    records = [];
+    saveRecords();
+    renderTable();
+};
 </script>
+
 </body>
 </html>
-
