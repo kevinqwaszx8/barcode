@@ -72,6 +72,9 @@
             color: #333;
             margin-top: 4px;
         }
+        #zoom-hint {
+            margin-top: 2px;
+        }
     </style>
 </head>
 <body>
@@ -106,8 +109,9 @@
     <button id="stop-scan">停止掃描</button>
     <div id="reader"></div>
     <div id="last-result" class="small">最後掃描結果：尚未掃描</div>
+    <div id="zoom-hint" class="small"></div>
     <div class="small" style="margin-top:4px;">
-        提示：可用 <strong>雙指放大縮小整個頁面</strong>，讓畫面看起來更大，方便對準條碼。<br>
+        提示：若裝置支援，相機畫面上可以用<strong>雙指縮放</strong>來數位變焦。<br>
         若無法開啟相機，請確認：<br>
         1. 網址是 <strong>https</strong>（GitHub Pages 已符合）<br>
         2. 手機已允許瀏覽器使用相機（到系統設定裡的 Safari / Chrome 檢查權限）<br>
@@ -207,6 +211,7 @@
     const noteInput    = document.getElementById("note");
     const tableBody    = document.getElementById("table-body");
     const lastResultEl = document.getElementById("last-result");
+    const zoomHintEl   = document.getElementById("zoom-hint");
 
     const startScanBtn    = document.getElementById("start-scan");
     const stopScanBtn     = document.getElementById("stop-scan");
@@ -216,6 +221,15 @@
 
     let html5QrCode = null;
     let scanning = false;
+
+    // 變焦相關（使用原生 MediaStreamTrack）
+    let videoTrack = null;
+    let zoomSupported = false;
+    let zoomMin = 1;
+    let zoomMax = 1;
+    let zoomCurrent = 1;
+    let pinchStartDist = null;
+    let pinchStartZoom = 1;
 
     // ===== 工具：取得本機時間字串（YYYY-MM-DD HH:MM:SS） =====
     function getLocalDateTimeString() {
@@ -277,7 +291,102 @@
         loadRecordsFromStorage();
     })();
 
-    // ===== 1. 開始 / 停止 掃描（使用最穩定的設定） =====
+    // ===== 變焦相關：初始化與 pinch 手勢處理 =====
+    function setZoomHint(text) {
+        zoomHintEl.textContent = text || "";
+    }
+
+    function setupPinchZoom() {
+        const video = document.querySelector("#reader video");
+        if (!video || !video.srcObject) {
+            setZoomHint("");
+            return;
+        }
+        const tracks = video.srcObject.getVideoTracks();
+        if (!tracks || tracks.length === 0) {
+            setZoomHint("");
+            return;
+        }
+
+        videoTrack = tracks[0];
+        zoomSupported = false;
+
+        try {
+            const caps = videoTrack.getCapabilities && videoTrack.getCapabilities();
+            if (caps && caps.zoom) {
+                zoomSupported = true;
+                zoomMin = caps.zoom.min ?? 1;
+                zoomMax = caps.zoom.max ?? caps.zoom.min ?? 1;
+                zoomCurrent = caps.zoom.default ?? 1;
+                if (zoomMin === zoomMax) {
+                    // 其實不能變焦
+                    zoomSupported = false;
+                }
+            }
+        } catch (e) {
+            console.warn("讀取變焦能力失敗：", e);
+            zoomSupported = false;
+        }
+
+        if (!zoomSupported) {
+            setZoomHint("此裝置可能不支援相機數位變焦（可改用移動距離靠近一點）。");
+            return;
+        }
+
+        setZoomHint("相機支援雙指數位變焦：在相機畫面上用雙指放大 / 縮小。");
+
+        // Pinch 手勢事件
+        function getTouchDistance(e) {
+            if (e.touches.length < 2) return 0;
+            const t1 = e.touches[0];
+            const t2 = e.touches[1];
+            const dx = t1.clientX - t2.clientX;
+            const dy = t1.clientY - t2.clientY;
+            return Math.hypot(dx, dy);
+        }
+
+        video.addEventListener("touchstart", e => {
+            if (!zoomSupported) return;
+            if (e.touches.length === 2) {
+                pinchStartDist = getTouchDistance(e);
+                pinchStartZoom = zoomCurrent;
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        video.addEventListener("touchmove", e => {
+            if (!zoomSupported) return;
+            if (pinchStartDist && e.touches.length === 2) {
+                const dist = getTouchDistance(e);
+                if (dist > 0) {
+                    const scale = dist / pinchStartDist;
+                    let targetZoom = pinchStartZoom * scale;
+                    targetZoom = Math.max(zoomMin, Math.min(zoomMax, targetZoom));
+                    applyZoom(targetZoom);
+                }
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        video.addEventListener("touchend", e => {
+            if (e.touches.length < 2) {
+                pinchStartDist = null;
+            }
+        });
+    }
+
+    function applyZoom(targetZoom) {
+        if (!zoomSupported || !videoTrack || !videoTrack.applyConstraints) return;
+        videoTrack.applyConstraints({ advanced: [{ zoom: targetZoom }] })
+            .then(() => {
+                zoomCurrent = targetZoom;
+            })
+            .catch(err => {
+                console.warn("套用變焦失敗：", err);
+            });
+    }
+
+    // ===== 1. 開始 / 停止 掃描（穩定設定） =====
     startScanBtn.addEventListener("click", async function() {
         try {
             if (!html5QrCode) {
@@ -313,7 +422,6 @@
                 // 噪音太多就不顯示，只留在 console
             }
 
-            // ✅ 這裡改回最相容的方式：只指定後鏡頭，不加複雜解析度限制
             await html5QrCode.start(
                 { facingMode: "environment" },
                 config,
@@ -322,6 +430,11 @@
             );
             scanning = true;
             lastResultEl.textContent = "最後掃描結果：掃描中...";
+            setZoomHint("檢查是否支援雙指數位變焦中…");
+
+            // 等 video 元素出來後，設定 pinch zoom
+            setTimeout(setupPinchZoom, 500);
+
         } catch (err) {
             console.error("啟動掃描失敗：", err);
             alert("啟動相機失敗，請確認已允許相機權限，或改用 Chrome 試試看。");
@@ -338,6 +451,9 @@
             }
             scanning = false;
             lastResultEl.textContent = "最後掃描結果：已停止掃描";
+            setZoomHint("");
+            videoTrack = null;
+            zoomSupported = false;
         }
     });
 
