@@ -4380,9 +4380,14 @@ hou_no	hou_name	item_id	mcs_no	cname	mea	item_iid	exp_date	loc1	safe_qty1	safe_q
     }
 
     // 條碼輸入框手動改變時也自動帶品名
-    barcodeInput.addEventListener("change", function () {
-        autoFillNameFromBarcode(barcodeInput.value);
-    });
+   barcodeInput.addEventListener("change", function () {
+    // 條碼被改了，先清空品名與數量
+    nameInput.value = "";
+    qtyInput.value = "";
+
+    autoFillNameFromBarcode(barcodeInput.value);
+});
+
 
     // ===== 匯入品名對照表（可覆蓋內建） =====
     mappingInput && mappingInput.addEventListener("change", function (e) {
@@ -4494,11 +4499,21 @@ hou_no	hou_name	item_id	mcs_no	cname	mea	item_iid	exp_date	loc1	safe_qty1	safe_q
             };
 
             function onScanSuccess(decodedText, decodedResult) {
-                console.log("Scan success:", decodedText, decodedResult);
-                barcodeInput.value = decodedText;
-                lastResultEl.textContent = "最後掃描結果：" + decodedText;
-                autoFillNameFromBarcode(decodedText);
-            }
+    console.log("Scan success:", decodedText, decodedResult);
+
+    // 先清空上一筆輸入
+    barcodeInput.value = "";
+    nameInput.value = "";
+    qtyInput.value = "";
+
+    // 再寫入新條碼
+    barcodeInput.value = decodedText;
+    lastResultEl.textContent = "最後掃描結果：" + decodedText;
+
+    // 自動帶入品名（會填到剛清空的 name）
+    autoFillNameFromBarcode(decodedText);
+}
+
 
             function onScanError(errorMessage) {
                 // 噪音太多就不顯示，只留在 console
@@ -4574,24 +4589,25 @@ hou_no	hou_name	item_id	mcs_no	cname	mea	item_iid	exp_date	loc1	safe_qty1	safe_q
 
         const createdAt = getLocalDateTimeString();
 
-        records.push({
-            user:   user,
-            barcode: barcode,
-            name:    name,
-            expiryDisplay: expiryDisplay,
-            expiryCsv:     expiryCsv,
-            qty:     qty,
-            note:    note,
-            createdAt: createdAt
-        });
+       records.push({
+    user:   user,
+    barcode: barcode,
+    name:    name,
+    expiryDisplay: expiryDisplay,
+    expiryCsv:     expiryCsv,
+    qty:     qty,
+    note:    note,
+    createdAt: createdAt
+});
 
-        renderTable();
-        saveRecordsToStorage();
+renderTable();
+saveRecordsToStorage();
 
-        barcodeInput.value = "";
-        qtyInput.value = 1;
-        // 其他欄位保留，方便連續輸入
-    });
+// ★ 加入清單後，條碼 / 品名 / 數量 都清空
+barcodeInput.value = "";
+nameInput.value = "";
+qtyInput.value = "1";
+
 
     function renderTable() {
         tableBody.innerHTML = "";
@@ -4691,3 +4707,4 @@ hou_no	hou_name	item_id	mcs_no	cname	mea	item_iid	exp_date	loc1	safe_qty1	safe_q
 </script>
 </body>
 </html>
+
