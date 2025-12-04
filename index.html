@@ -72,9 +72,6 @@
             color: #333;
             margin-top: 4px;
         }
-        .controls-row {
-            margin-top: 6px;
-        }
     </style>
 </head>
 <body>
@@ -105,19 +102,15 @@
 <!-- 掃描區塊 -->
 <div class="section">
     <h2 style="font-size: 16px; margin: 0 0 4px 0;">1. 條碼掃描</h2>
-    <div class="controls-row">
-        <button id="start-scan">開始掃描</button>
-        <button id="stop-scan">停止掃描</button>
-        <button id="zoom-in">放大＋</button>
-        <button id="zoom-out">縮小－</button>
-    </div>
+    <button id="start-scan">開始掃描</button>
+    <button id="stop-scan">停止掃描</button>
     <div id="reader"></div>
     <div id="last-result" class="small">最後掃描結果：尚未掃描</div>
-    <div id="zoom-info" class="small"></div>
     <div class="small" style="margin-top:4px;">
+        提示：可用 <strong>雙指放大縮小整個頁面</strong>，讓畫面看起來更大，方便對準條碼。<br>
         若無法開啟相機，請確認：<br>
         1. 網址是 <strong>https</strong>（GitHub Pages 已符合）<br>
-        2. 手機已允許瀏覽器使用相機<br>
+        2. 手機已允許瀏覽器使用相機（到系統設定裡的 Safari / Chrome 檢查權限）<br>
         3. 掃一般商品條碼（EAN-13 / UPC / CODE-128 等）
     </div>
 </div>
@@ -214,25 +207,15 @@
     const noteInput    = document.getElementById("note");
     const tableBody    = document.getElementById("table-body");
     const lastResultEl = document.getElementById("last-result");
-    const zoomInfo     = document.getElementById("zoom-info");
 
     const startScanBtn    = document.getElementById("start-scan");
     const stopScanBtn     = document.getElementById("stop-scan");
-    const zoomInBtn       = document.getElementById("zoom-in");
-    const zoomOutBtn      = document.getElementById("zoom-out");
     const addRowBtn       = document.getElementById("add-row");
     const downloadXlsxBtn = document.getElementById("download-xlsx");
     const clearAllBtn     = document.getElementById("clear-all");
 
     let html5QrCode = null;
     let scanning = false;
-
-    // 變焦相關
-    let zoomSupported = false;
-    let zoomMin = 1;
-    let zoomMax = 1;
-    let zoomStep = 0.1;
-    let zoomCurrent = 1;
 
     // ===== 工具：取得本機時間字串（YYYY-MM-DD HH:MM:SS） =====
     function getLocalDateTimeString() {
@@ -294,71 +277,7 @@
         loadRecordsFromStorage();
     })();
 
-    // ===== 變焦資訊顯示 =====
-    function updateZoomInfo() {
-        if (!zoomSupported) {
-            zoomInfo.textContent = "此裝置可能不支援數位放大（zoom）。";
-        } else {
-            zoomInfo.textContent = `數位變焦：${zoomCurrent.toFixed(1)}x（範圍約 ${zoomMin.toFixed(1)} ～ ${zoomMax.toFixed(1)}）`;
-        }
-    }
-
-    async function initZoomIfSupported() {
-        if (!html5QrCode || typeof html5QrCode.getRunningTrackCapabilities !== "function") {
-            zoomSupported = false;
-            updateZoomInfo();
-            return;
-        }
-        try {
-            const caps = await html5QrCode.getRunningTrackCapabilities();
-            if (caps && caps.zoom) {
-                zoomSupported = true;
-                zoomMin = caps.zoom.min ?? 1;
-                zoomMax = caps.zoom.max ?? 3;
-                zoomStep = caps.zoom.step ?? 0.1;
-                zoomCurrent = caps.zoom.default ?? 1;
-            } else {
-                zoomSupported = false;
-            }
-        } catch (e) {
-            console.warn("讀取相機變焦能力失敗：", e);
-            zoomSupported = false;
-        }
-        updateZoomInfo();
-    }
-
-    function applyZoom(newZoom) {
-        if (!zoomSupported || !html5QrCode || typeof html5QrCode.applyVideoConstraints !== "function") {
-            alert("此裝置不支援數位放大。");
-            return;
-        }
-        zoomCurrent = Math.max(zoomMin, Math.min(zoomMax, newZoom));
-        html5QrCode.applyVideoConstraints({ advanced: [{ zoom: zoomCurrent }] })
-            .then(() => {
-                updateZoomInfo();
-            })
-            .catch(err => {
-                console.warn("套用變焦失敗：", err);
-            });
-    }
-
-    zoomInBtn.addEventListener("click", () => {
-        if (!zoomSupported) {
-            alert("此裝置不支援數位放大。");
-            return;
-        }
-        applyZoom(zoomCurrent + zoomStep);
-    });
-
-    zoomOutBtn.addEventListener("click", () => {
-        if (!zoomSupported) {
-            alert("此裝置不支援數位放大。");
-            return;
-        }
-        applyZoom(zoomCurrent - zoomStep);
-    });
-
-    // ===== 1. 開始 / 停止 掃描 =====
+    // ===== 1. 開始 / 停止 掃描（使用最穩定的設定） =====
     startScanBtn.addEventListener("click", async function() {
         try {
             if (!html5QrCode) {
@@ -368,8 +287,7 @@
 
             const config = {
                 fps: 15,
-                qrbox: { width: 320, height: 140 }, // 比較扁，適合條碼
-                aspectRatio: 4/3,
+                qrbox: { width: 320, height: 140 }, // 長方形框，比較適合條碼
                 formatsToSupport: [
                     Html5QrcodeSupportedFormats.EAN_13,
                     Html5QrcodeSupportedFormats.EAN_8,
@@ -385,13 +303,6 @@
                 }
             };
 
-            // 要求較高解析度，讓遠一點也比較好讀
-            const cameraConstraints = {
-                facingMode: { ideal: "environment" },
-                width:  { ideal: 1920 },
-                height: { ideal: 1080 }
-            };
-
             function onScanSuccess(decodedText, decodedResult) {
                 console.log("Scan success:", decodedText, decodedResult);
                 barcodeInput.value = decodedText;
@@ -402,18 +313,15 @@
                 // 噪音太多就不顯示，只留在 console
             }
 
+            // ✅ 這裡改回最相容的方式：只指定後鏡頭，不加複雜解析度限制
             await html5QrCode.start(
-                cameraConstraints,
+                { facingMode: "environment" },
                 config,
                 onScanSuccess,
                 onScanError
             );
             scanning = true;
             lastResultEl.textContent = "最後掃描結果：掃描中...";
-
-            // 啟動後嘗試讀取變焦能力
-            initZoomIfSupported();
-
         } catch (err) {
             console.error("啟動掃描失敗：", err);
             alert("啟動相機失敗，請確認已允許相機權限，或改用 Chrome 試試看。");
