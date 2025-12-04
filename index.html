@@ -111,7 +111,7 @@
     <div id="last-result" class="small">最後掃描結果：尚未掃描</div>
     <div id="zoom-hint" class="small"></div>
     <div class="small" style="margin-top:4px;">
-        提示：若裝置支援，相機畫面上可以用<strong>雙指縮放</strong>來數位變焦。<br>
+        提示：若裝置支援，相機畫面上<strong>快速點兩下</strong>可在「放大 / 還原」之間切換數位變焦。<br>
         若無法開啟相機，請確認：<br>
         1. 網址是 <strong>https</strong>（GitHub Pages 已符合）<br>
         2. 手機已允許瀏覽器使用相機（到系統設定裡的 Safari / Chrome 檢查權限）<br>
@@ -228,8 +228,6 @@
     let zoomMin = 1;
     let zoomMax = 1;
     let zoomCurrent = 1;
-    let pinchStartDist = null;
-    let pinchStartZoom = 1;
 
     // ===== 工具：取得本機時間字串（YYYY-MM-DD HH:MM:SS） =====
     function getLocalDateTimeString() {
@@ -291,12 +289,13 @@
         loadRecordsFromStorage();
     })();
 
-    // ===== 變焦相關：初始化與 pinch 手勢處理 =====
+    // ===== 變焦提示 =====
     function setZoomHint(text) {
         zoomHintEl.textContent = text || "";
     }
 
-    function setupPinchZoom() {
+    // 取得相機 zoom 能力並綁定 double-tap
+    function setupTapZoom() {
         const video = document.querySelector("#reader video");
         if (!video || !video.srcObject) {
             setZoomHint("");
@@ -317,9 +316,8 @@
                 zoomSupported = true;
                 zoomMin = caps.zoom.min ?? 1;
                 zoomMax = caps.zoom.max ?? caps.zoom.min ?? 1;
-                zoomCurrent = caps.zoom.default ?? 1;
+                zoomCurrent = caps.zoom.default ?? zoomMin;
                 if (zoomMin === zoomMax) {
-                    // 其實不能變焦
                     zoomSupported = false;
                 }
             }
@@ -333,45 +331,34 @@
             return;
         }
 
-        setZoomHint("相機支援雙指數位變焦：在相機畫面上用雙指放大 / 縮小。");
+        setZoomHint("支援數位變焦：在相機畫面上『快速點兩下』可在放大 / 還原之間切換。");
 
-        // Pinch 手勢事件
-        function getTouchDistance(e) {
-            if (e.touches.length < 2) return 0;
-            const t1 = e.touches[0];
-            const t2 = e.touches[1];
-            const dx = t1.clientX - t2.clientX;
-            const dy = t1.clientY - t2.clientY;
-            return Math.hypot(dx, dy);
+        let lastTapTime = 0;
+
+        function toggleZoom() {
+            if (!zoomSupported) return;
+            let targetZoom;
+            // 小於等於接近最小值 → 放到最大；否則 → 回到最小
+            if (zoomCurrent <= zoomMin + 0.05) {
+                targetZoom = zoomMax;
+            } else {
+                targetZoom = zoomMin;
+            }
+            applyZoom(targetZoom);
         }
 
-        video.addEventListener("touchstart", e => {
-            if (!zoomSupported) return;
-            if (e.touches.length === 2) {
-                pinchStartDist = getTouchDistance(e);
-                pinchStartZoom = zoomCurrent;
-                e.preventDefault();
-            }
-        }, { passive: false });
-
-        video.addEventListener("touchmove", e => {
-            if (!zoomSupported) return;
-            if (pinchStartDist && e.touches.length === 2) {
-                const dist = getTouchDistance(e);
-                if (dist > 0) {
-                    const scale = dist / pinchStartDist;
-                    let targetZoom = pinchStartZoom * scale;
-                    targetZoom = Math.max(zoomMin, Math.min(zoomMax, targetZoom));
-                    applyZoom(targetZoom);
-                }
-                e.preventDefault();
-            }
-        }, { passive: false });
-
         video.addEventListener("touchend", e => {
-            if (e.touches.length < 2) {
-                pinchStartDist = null;
+            const now = Date.now();
+            if (now - lastTapTime < 300) { // 兩次 touchend 間隔 < 300ms 視為 double tap
+                e.preventDefault();
+                toggleZoom();
             }
+            lastTapTime = now;
+        }, { passive: false });
+
+        video.addEventListener("dblclick", e => {
+            e.preventDefault();
+            toggleZoom();
         });
     }
 
@@ -430,10 +417,10 @@
             );
             scanning = true;
             lastResultEl.textContent = "最後掃描結果：掃描中...";
-            setZoomHint("檢查是否支援雙指數位變焦中…");
+            setZoomHint("檢查是否支援雙擊數位變焦中…");
 
-            // 等 video 元素出來後，設定 pinch zoom
-            setTimeout(setupPinchZoom, 500);
+            // 等 video 出現後再綁定 double-tap
+            setTimeout(setupTapZoom, 500);
 
         } catch (err) {
             console.error("啟動掃描失敗：", err);
