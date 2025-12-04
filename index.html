@@ -195,6 +195,19 @@
     <div class="small">⚠️ 清空全部會把這支手機目前的盤點資料全部刪除，且無法復原。</div>
 </div>
 
+<!-- 品名對照表匯入 -->
+<div class="section">
+    <h2 style="font-size: 16px; margin: 0 0 4px 0;">4. 匯入品名對照表</h2>
+    <div class="small">
+        建議使用從系統匯出的文字檔（.txt），每行包含分店代號、藥局名、條碼、庫別、品名…<br>
+        例如：<br>
+        <code>02  祥威藥局  4715066603688  K6  固常樂-BC順暢2g*30包  盒  4715066603688 ...</code><br>
+        也支援簡單的 <code>條碼,品名</code> 或 <code>條碼 品名</code> 格式，以及 Excel (.xlsx/.xls)。<br>
+        之後掃描或輸入條碼時，會自動帶出品名。
+    </div>
+    <input type="file" id="mapping-file" accept=".txt,.csv,.xlsx,.xls">
+</div>
+
 <script>
     // ===== 基本變數 =====
     const STORAGE_KEY = "inventory_records_v2";  // 每支手機自己的資料空間
@@ -212,6 +225,7 @@
     const tableBody    = document.getElementById("table-body");
     const lastResultEl = document.getElementById("last-result");
     const zoomHintEl   = document.getElementById("zoom-hint");
+    const mappingInput = document.getElementById("mapping-file");
 
     const startScanBtn    = document.getElementById("start-scan");
     const stopScanBtn     = document.getElementById("stop-scan");
@@ -228,6 +242,9 @@
     let zoomMin = 1;
     let zoomMax = 1;
     let zoomCurrent = 1;
+
+    // 條碼 → 品名 對照表
+    let barcodeNameMap = {};
 
     // ===== 工具：取得本機時間字串（YYYY-MM-DD HH:MM:SS） =====
     function getLocalDateTimeString() {
@@ -338,7 +355,6 @@
         function toggleZoom() {
             if (!zoomSupported) return;
             let targetZoom;
-            // 小於等於接近最小值 → 放到最大；否則 → 回到最小
             if (zoomCurrent <= zoomMin + 0.05) {
                 targetZoom = zoomMax;
             } else {
@@ -349,7 +365,7 @@
 
         video.addEventListener("touchend", e => {
             const now = Date.now();
-            if (now - lastTapTime < 300) { // 兩次 touchend 間隔 < 300ms 視為 double tap
+            if (now - lastTapTime < 300) {
                 e.preventDefault();
                 toggleZoom();
             }
@@ -373,6 +389,154 @@
             });
     }
 
+    // ===== 依條碼自動帶入品名 =====
+    function autoFillNameFromBarcode(barcode) {
+        if (!barcode) return;
+        if (!barcodeNameMap || Object.keys(barcodeNameMap).length === 0) return;
+
+        const name = barcodeNameMap[String(barcode).trim()];
+        if (name) {
+            if (!nameInput.value.trim()) {
+                nameInput.value = name;
+            }
+        }
+    }
+
+    // 條碼輸入框手動改變時也自動帶品名
+    barcodeInput.addEventListener("change", function () {
+        autoFillNameFromBarcode(barcodeInput.value);
+    });
+
+    // ===== 匯入品名對照表（支援 txt / csv / xlsx / xls） =====
+    mappingInput && mappingInput.addEventListener("change", function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const ext = file.name.split(".").pop().toLowerCase();
+
+        // TXT / CSV 處理
+        if (["txt", "csv"].includes(ext)) {
+            const reader = new FileReader();
+            reader.onload = function (ev) {
+                try {
+                    const text = ev.target.result;
+                    const lines = text.split(/\r?\n/);
+                    const map = {};
+
+                    for (let i = 0; i < lines.length; i++) {
+                        let line = lines[i].trim();
+                        if (!line) continue;
+
+                        // POS 匯出格式第一行可能是表頭，含 hou_no 就跳過
+                        if (i === 0 && line.indexOf("hou_no") !== -1) {
+                            continue;
+                        }
+
+                        // 先試著用 Tab 分隔
+                        let cols = line.split(/\t+/);
+                        if (cols.length < 3) {
+                            // 不夠就用逗號或多空白分隔
+                            cols = line.split(/[\s,]+/);
+                        }
+
+                        // 判斷是「POS 多欄格式」還是「條碼 品名」簡單格式
+                        let barcode = "";
+                        let name = "";
+
+                        const isBarcode = v => /^[0-9]{6,}$/.test(v || "");
+
+                        if (cols.length >= 7) {
+                            // 當成你的 POS 格式：
+                            // 0:分店, 1:藥局名, 2:item_id(條碼), 3:庫別, 4:品名, 5:單位, 6:item_iid(條碼)
+                            const item_id  = (cols[2] || "").trim();
+                            const cname    = (cols[4] || "").trim();
+                            const item_iid = (cols[6] || "").trim();
+
+                            if (!cname) continue;
+
+                            if (isBarcode(item_iid)) {
+                                barcode = item_iid;
+                            } else if (isBarcode(item_id)) {
+                                barcode = item_id;
+                            }
+                            name = cname;
+                        } else if (cols.length >= 2) {
+                            // 簡單格式：條碼 品名
+                            const bc = cols[0].trim();
+                            const nm = cols.slice(1).join(" ").trim();
+                            if (isBarcode(bc) && nm) {
+                                barcode = bc;
+                                name = nm;
+                            }
+                        }
+
+                        if (barcode && name) {
+                            map[barcode] = name;
+                        }
+                    }
+
+                    barcodeNameMap = map;
+                    alert(`文字對照表已載入，共 ${Object.keys(map).length} 筆。`);
+                } catch (err) {
+                    console.error("解析文字檔失敗：", err);
+                    alert("解析文字檔失敗，請檢查內容格式。");
+                }
+            };
+            reader.readAsText(file, "UTF-8");
+            return;
+        }
+
+        // Excel 處理
+        const reader = new FileReader();
+        reader.onload = function (ev) {
+            try {
+                const data = new Uint8Array(ev.target.result);
+                const workbook = XLSX.read(data, { type: "array" });
+
+                const firstSheetName = workbook.SheetNames[0];
+                const ws = workbook.Sheets[firstSheetName];
+
+                const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false });
+                if (!rows.length) {
+                    alert("Excel 對照表是空的");
+                    return;
+                }
+
+                const header = rows[0].map(h => String(h || "").trim());
+                const barcodeIdx = header.findIndex(h =>
+                    ["barcode", "條碼", "條碼號碼"].includes(h)
+                );
+                const nameIdx = header.findIndex(h =>
+                    ["name", "品名", "商品名稱"].includes(h)
+                );
+
+                if (barcodeIdx === -1 || nameIdx === -1) {
+                    alert("Excel 找不到條碼 / 品名 欄位");
+                    return;
+                }
+
+                const map = {};
+                for (let i = 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (!row) continue;
+
+                    const bc = row[barcodeIdx];
+                    const nm = row[nameIdx];
+                    if (!bc || !nm) continue;
+
+                    map[String(bc).trim()] = String(nm).trim();
+                }
+
+                barcodeNameMap = map;
+                alert("Excel 對照表已載入，共 " + Object.keys(map).length + " 筆。");
+            } catch (err) {
+                console.error("Excel 讀取失敗：", err);
+                alert("Excel 讀取失敗，請確認格式是否正確。");
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
     // ===== 1. 開始 / 停止 掃描（穩定設定） =====
     startScanBtn.addEventListener("click", async function() {
         try {
@@ -382,50 +546,35 @@
             if (scanning) return;
 
             const config = {
-    // 幀率稍微提高，畫面更新比較密，但不要太高避免手機吃不消
-    fps: 20,
-
-    // 掃描框自動依螢幕寬度調整：寬一點、扁一點，專門給一維條碼
-    qrbox: function(viewportWidth, viewportHeight) {
-        // 掃描框寬度 = 螢幕寬度的 90%，最多 360px
-        const width = Math.min(viewportWidth * 0.9, 360);
-        // 高度取較扁的比例，例如 0.35
-        const height = Math.round(width * 0.35);
-        return { width, height };
-    },
-
-    // 4:3 比例通常是多數手機後鏡頭最穩定的模式
-    aspectRatio: 4 / 3,
-
-    // 只支援一維條碼，減少多餘解碼類型
-    formatsToSupport: [
-        Html5QrcodeSupportedFormats.EAN_13,
-        Html5QrcodeSupportedFormats.EAN_8,
-        Html5QrcodeSupportedFormats.UPC_A,
-        Html5QrcodeSupportedFormats.UPC_E,
-        Html5QrcodeSupportedFormats.CODE_128,
-        Html5QrcodeSupportedFormats.CODE_39,
-        Html5QrcodeSupportedFormats.CODE_93,
-        Html5QrcodeSupportedFormats.CODABAR
-    ],
-
-    experimentalFeatures: {
-        // 裝置有支援瀏覽器內建 BarcodeDetector 的話會自動用，比較快
-        useBarCodeDetectorIfSupported: true
-    },
-
-    // 有些手機前鏡頭會鏡像翻轉，先關掉
-    disableFlip: true,
-
-    // 記住上一次用的相機（通常是後鏡頭）
-    rememberLastUsedCamera: true
-};
-
+                fps: 20,
+                qrbox: function(viewportWidth, viewportHeight) {
+                    const width = Math.min(viewportWidth * 0.9, 360);
+                    const height = Math.round(width * 0.35);
+                    return { width, height };
+                },
+                aspectRatio: 4 / 3,
+                formatsToSupport: [
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.EAN_8,
+                    Html5QrcodeSupportedFormats.UPC_A,
+                    Html5QrcodeSupportedFormats.UPC_E,
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.CODE_39,
+                    Html5QrcodeSupportedFormats.CODE_93,
+                    Html5QrcodeSupportedFormats.CODABAR
+                ],
+                experimentalFeatures: {
+                    useBarCodeDetectorIfSupported: true
+                },
+                disableFlip: true,
+                rememberLastUsedCamera: true
+            };
 
             function onScanSuccess(decodedText, decodedResult) {
                 console.log("Scan success:", decodedText, decodedResult);
                 barcodeInput.value = decodedText;
                 lastResultEl.textContent = "最後掃描結果：" + decodedText;
+                autoFillNameFromBarcode(decodedText);
             }
 
             function onScanError(errorMessage) {
@@ -442,7 +591,6 @@
             lastResultEl.textContent = "最後掃描結果：掃描中...";
             setZoomHint("檢查是否支援雙擊數位變焦中…");
 
-            // 等 video 出現後再綁定 double-tap
             setTimeout(setupTapZoom, 500);
 
         } catch (err) {
@@ -620,4 +768,3 @@
 </script>
 </body>
 </html>
-
