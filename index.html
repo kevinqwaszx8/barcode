@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>祥威藥局盤點工具 - 高速版</title>
+    <title>祥威藥局盤點工具 - 專業增強版</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
@@ -12,103 +12,94 @@
         :root {
             --primary: #2c3e50;
             --accent: #27ae60;
-            --danger: #c0392b;
             --bg: #f4f7f6;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto;
             margin: 0; padding: env(safe-area-inset-top) 12px 20px;
             background: var(--bg); color: var(--primary);
         }
 
-        .header { text-align: center; padding: 10px 0; }
-        h1 { font-size: 22px; margin: 0; color: var(--primary); }
+        .section {
+            background: #fff; border-radius: 12px; padding: 12px;
+            margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        h1 { font-size: 18px; text-align: center; margin: 10px 0; color: var(--primary); }
 
         /* 狀態標籤 */
         #db-status {
-            font-size: 12px; text-align: center; padding: 4px;
-            border-radius: 4px; margin-bottom: 10px; background: #ddd;
+            font-size: 11px; text-align: center; padding: 3px;
+            border-radius: 4px; background: #eee; margin-bottom: 5px;
         }
         .online { background: #d1f2eb !important; color: #16a085; }
 
-        /* 掃描器高級外框 */
-        #reader-container {
-            position: relative; width: 100%; max-width: 500px; margin: 0 auto;
-            border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            background: #000; border: 3px solid #fff;
+        /* 掃描視窗縮小優化 */
+        #reader-wrapper {
+            position: relative; width: 100%; max-width: 400px; margin: 0 auto;
+            border-radius: 12px; overflow: hidden; 
+            border: 2px solid var(--primary); background: #000;
+            max-height: 200px; /* 限制高度，不佔版面 */
         }
         #reader { width: 100%; }
 
-        /* 掃描框動畫線條 */
-        .scan-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 2;
-            border: 2px solid rgba(255,255,255,0.1);
-        }
-
-        .result-card {
-            background: #fff; border-radius: 12px; padding: 15px; margin-top: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-left: 6px solid var(--accent);
-        }
-
-        .input-group { margin-top: 15px; background: #fff; padding: 15px; border-radius: 12px; }
-        label { display: block; font-size: 13px; color: #7f8c8d; margin-bottom: 4px; }
+        label { display: block; font-size: 12px; color: #7f8c8d; margin-bottom: 2px; margin-top: 8px; }
+        
         input, select {
-            width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ddd;
-            border-radius: 8px; margin-bottom: 12px; outline: none;
+            width: 100%; padding: 10px; font-size: 15px; border: 1px solid #ddd;
+            border-radius: 6px; outline: none; transition: 0.2s;
         }
+        input:focus { border-color: var(--accent); }
 
-        .btn-flex { display: flex; gap: 8px; margin-bottom: 10px; }
+        .btn-flex { display: flex; gap: 8px; margin: 8px 0; }
         button {
-            flex: 1; padding: 12px; font-size: 16px; font-weight: 600;
-            border-radius: 10px; border: none; cursor: pointer; transition: 0.2s;
+            flex: 1; padding: 10px; font-size: 14px; font-weight: 600;
+            border-radius: 8px; border: none; cursor: pointer;
         }
         .btn-primary { background: var(--primary); color: #fff; }
         .btn-accent { background: var(--accent); color: #fff; }
-        .btn-torch { background: #f1c40f; color: #000; flex: 0.4; }
+        .btn-torch { background: #f1c40f; color: #000; flex: 0.3; }
         
         /* 列表樣式 */
-        .table-container { overflow-x: auto; background: #fff; border-radius: 12px; margin-top: 15px; }
-        table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 500px; }
-        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; }
+        .table-container { overflow-x: auto; background: #fff; border-radius: 8px; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 550px; }
+        th, td { padding: 8px; border-bottom: 1px solid #eee; text-align: center; }
         th { background: #fafafa; color: #95a5a6; }
 
-        @keyframes scan {
-            0% { top: 20%; }
-            100% { top: 80%; }
+        .last-scanned {
+            text-align: center; font-size: 14px; font-weight: bold; 
+            color: var(--accent); margin: 5px 0;
         }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <h1>祥威藥局盤點工具</h1>
-    <div id="db-status">同步雲端資料中...</div>
+<h1>祥威藥局盤點工具</h1>
+<div id="db-status">正在同步雲端品名...</div>
+
+<div class="section">
+    <label>使用者</label>
+    <input type="text" id="user" placeholder="請輸入姓名">
 </div>
 
-<div id="reader-container">
-    <div id="reader"></div>
+<div class="section" style="padding: 8px;">
+    <div id="reader-wrapper">
+        <div id="reader"></div>
+    </div>
+    <div class="btn-flex">
+        <button id="btn-start" class="btn-primary">📷 開啟相機</button>
+        <button id="btn-torch" class="btn-torch">🔦</button>
+        <button id="btn-stop" style="background:#ddd; flex:0.5">關閉</button>
+    </div>
+    <div id="last-barcode-display" class="last-scanned">等待掃描...</div>
 </div>
 
-<div class="btn-flex" style="margin-top:10px;">
-    <button id="btn-start" class="btn-primary">▶ 開始掃描</button>
-    <button id="btn-torch" class="btn-torch">🔦 燈光</button>
-    <button id="btn-stop" style="background:#ddd;">關閉</button>
-</div>
-
-<div id="last-barcode-display" style="text-align:center; font-size:18px; font-weight:bold; color:var(--accent);">
-    等待掃描中...
-</div>
-
-<div class="result-card">
-    <label>品名</label>
-    <input type="text" id="name" placeholder="自動帶入或手動輸入">
-    
+<div class="section">
     <div style="display:flex; gap:8px;">
-        <div style="flex:2">
-            <label>條碼</label>
-            <input type="text" id="barcode" readonly>
+        <div style="flex:1.5">
+            <label>條碼 (可手動修改)</label>
+            <input type="text" id="barcode" placeholder="請掃描或輸入">
         </div>
         <div style="flex:1">
             <label>數量</label>
@@ -116,23 +107,29 @@
         </div>
     </div>
 
+    <label>品名 (可手動修改)</label>
+    <input type="text" id="name" placeholder="自動帶入品名...">
+
     <label>效期</label>
     <div style="display:flex; gap:4px;">
         <select id="exp-y"></select>
         <select id="exp-m">
             <option value="">月</option>
-            <script>for(let i=1;i<=12;i++) document.write(`<option value="${i}">${i}</option>`)</script>
+            <script>for(let i=1;i<=12;i++) document.write(`<option value="${String(i).padStart(2,'0')}">${i}月</option>`)</script>
         </select>
         <select id="exp-d"></select>
     </div>
 
-    <button id="btn-add" class="btn-accent" style="width:100%; margin-top:10px;">加入清單</button>
+    <label>儲位 / 備註</label>
+    <input type="text" id="note" placeholder="例如：A架、冷藏櫃...">
+
+    <button id="btn-add" class="btn-accent" style="width:100%; margin-top:12px; font-size: 16px;">加入清單</button>
 </div>
 
 <div class="table-container">
     <table>
         <thead>
-            <tr><th>品名</th><th>數量</th><th>效期</th><th>操作</th></tr>
+            <tr><th>使用者</th><th>品名</th><th>數量</th><th>效期</th><th>儲位</th><th>操作</th></tr>
         </thead>
         <tbody id="table-body"></tbody>
     </table>
@@ -140,12 +137,12 @@
 
 <div class="btn-flex" style="margin-top:20px;">
     <button onclick="exportExcel()" style="background:#3498db; color:#fff;">📥 匯出 Excel</button>
-    <button onclick="clearAll()" style="background:#f2dede; color:#a94442;">清空全部</button>
+    <button onclick="clearAll()" style="background:#f2dede; color:#a94442;">清空</button>
 </div>
 
 <script>
     const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYlvRc0iS91LtXg1laxAMKADMYTXOFGHENh3E-g5QqDCV08F1O8PzfzWEiGdAAwzJpkeiJ2rWBR05t/pub?gid=1142644173&single=true&output=csv";
-    const STORAGE_KEY = "xw_inventory_pro";
+    const STORAGE_KEY = "xw_inventory_v2";
     
     let barcodeMap = {};
     let records = [];
@@ -157,9 +154,9 @@
     const daySel = document.getElementById('exp-d');
     const thisYear = new Date().getFullYear();
     yearSel.innerHTML = `<option value="">年</option>` + Array.from({length:11}, (_,i)=>`<option value="${thisYear+i}">${thisYear+i}</option>`).join('');
-    daySel.innerHTML = `<option value="">日</option>` + Array.from({length:31}, (_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
+    daySel.innerHTML = `<option value="">日</option>` + Array.from({length:31}, (_,i)=>`<option value="${String(i+1).padStart(2,'0')}">${i+1}</option>`).join('');
 
-    // 1. 抓取雲端資料 (item_id, cname)
+    // 1. 抓取雲端資料
     async function initCloudDB() {
         try {
             const res = await fetch(CSV_URL);
@@ -176,72 +173,74 @@
             document.getElementById('db-status').textContent = `✅ 雲端同步完成 (${Object.keys(barcodeMap).length} 筆)`;
             document.getElementById('db-status').className = 'online';
         } catch (e) {
-            document.getElementById('db-status').textContent = "⚠️ 離線模式";
+            document.getElementById('db-status').textContent = "⚠️ 無法更新雲端，使用離線模式";
         }
     }
 
-    // 2. 高速掃描配置
+    // 2. 啟動高速掃描 (縮小區域)
     async function startScanner() {
         if (!scanner) scanner = new Html5Qrcode("reader");
         
         const config = {
-            fps: 60, // 高偵測率
-            qrbox: { width: 280, height: 140 }, // 針對一維條碼的扁平框
+            fps: 60,
+            // 縮小掃描計算區域，框框更小速度更快
+            qrbox: { width: 250, height: 120 }, 
             aspectRatio: 1.0,
-            experimentalFeatures: {
-                useBarCodeDetectorIfSupported: true // 強制啟動原生硬體加速
-            },
+            experimentalFeatures: { useBarCodeDetectorIfSupported: true },
             videoConstraints: {
                 facingMode: "environment",
-                width: { ideal: 1920 }, // 1080p 解析度
-                height: { ideal: 1080 },
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
                 focusMode: "continuous"
             }
         };
 
         try {
             await scanner.start({ facingMode: "environment" }, config, (text) => {
-                // 掃描成功邏輯
-                if (text === document.getElementById('barcode').value) return; // 避免重複掃描
-                
-                // 震動回饋
+                if (text === document.getElementById('barcode').value) return; 
                 if (navigator.vibrate) navigator.vibrate(60);
                 
                 document.getElementById('barcode').value = text;
-                document.getElementById('last-barcode-display').textContent = "最新條碼：" + text;
+                document.getElementById('last-barcode-display').textContent = "✔ 掃描成功：" + text;
                 
+                // 嘗試匹配品名，若找不到則讓使用者手動輸入
                 if (barcodeMap[text]) {
                     document.getElementById('name').value = barcodeMap[text];
                 } else {
                     document.getElementById('name').value = "";
-                    document.getElementById('name').placeholder = "找不到品名，請手動輸入";
+                    document.getElementById('name').placeholder = "資料庫查無此品項，請手動輸入";
                 }
             });
         } catch (err) {
-            alert("相機啟動失敗，請確認 HTTPS 與權限");
+            alert("請確保已開啟相機權限且使用 HTTPS 連線");
         }
     }
 
-    // 3. 手電筒控制
-    document.getElementById('btn-torch').addEventListener('click', async () => {
-        if (!scanner) return;
-        isTorchOn = !isTorchOn;
-        try {
-            await scanner.applyVideoConstraints({ focusMode: "continuous", torch: isTorchOn });
-        } catch (e) { console.log("此裝置不支援手電筒"); }
+    // 手動輸入條碼時也自動查品名
+    document.getElementById('barcode').addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        if (barcodeMap[val]) {
+            document.getElementById('name').value = barcodeMap[val];
+        }
     });
 
-    // 4. 加入清單
+    // 3. 加入清單
     document.getElementById('btn-add').addEventListener('click', () => {
-        const bc = document.getElementById('barcode').value;
-        const nm = document.getElementById('name').value;
-        if (!bc) return alert("請先掃描條碼");
+        const user = document.getElementById('user').value.trim();
+        const bc = document.getElementById('barcode').value.trim();
+        const nm = document.getElementById('name').value.trim();
+        if (!bc) return alert("請輸入或掃描條碼");
+        if (!user) return alert("請輸入使用者姓名");
+
+        const expiry = yearSel.value ? `${yearSel.value}/${document.getElementById('exp-m').value}/${daySel.value}` : "未填";
 
         const record = {
-            name: nm || "未知名稱",
+            user: user,
+            name: nm || "手動輸入項目",
             barcode: bc,
             qty: document.getElementById('qty').value,
-            expiry: `${yearSel.value}/${document.getElementById('exp-m').value}/${daySel.value}`,
+            expiry: expiry,
+            note: document.getElementById('note').value,
             time: new Date().toLocaleTimeString()
         };
 
@@ -249,28 +248,30 @@
         updateTable();
         saveToLocal();
         
-        // 加入後只清出品名與條碼，不關相機，方便連續掃描
+        // 加入後清空輸入框，相機不關閉
         document.getElementById('barcode').value = "";
         document.getElementById('name').value = "";
         document.getElementById('qty').value = "1";
+        document.getElementById('note').value = "";
     });
 
+    // 介面更新與儲存邏輯
     function updateTable() {
         const tbody = document.getElementById('table-body');
         tbody.innerHTML = records.map((r, i) => `
             <tr>
+                <td>${r.user}</td>
                 <td style="text-align:left">${r.name}</td>
                 <td>${r.qty}</td>
                 <td>${r.expiry}</td>
-                <td><button class="delete-btn" onclick="deleteItem(${i})">刪除</button></td>
+                <td>${r.note}</td>
+                <td><button style="background:none; color:red; border:1px solid red; padding:2px 5px;" onclick="deleteItem(${i})">刪除</button></td>
             </tr>
         `).join('');
     }
 
     window.deleteItem = (i) => {
-        records.splice(i, 1);
-        updateTable();
-        saveToLocal();
+        if(confirm("確定刪除此筆？")) { records.splice(i, 1); updateTable(); saveToLocal(); }
     };
 
     function saveToLocal() { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }
@@ -280,7 +281,7 @@
     }
 
     function exportExcel() {
-        if (records.length === 0) return alert("目前沒有資料");
+        if (!records.length) return alert("沒有資料");
         const ws = XLSX.utils.json_to_sheet(records);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "盤點紀錄");
@@ -288,10 +289,16 @@
     }
 
     function clearAll() {
-        if (confirm("確定清空這支手機的紀錄？")) {
+        if (confirm("確定要清空此手機的所有紀錄嗎？")) {
             records = []; updateTable(); localStorage.removeItem(STORAGE_KEY);
         }
     }
+
+    document.getElementById('btn-torch').addEventListener('click', async () => {
+        if (!scanner) return;
+        isTorchOn = !isTorchOn;
+        try { await scanner.applyVideoConstraints({ torch: isTorchOn }); } catch (e) {}
+    });
 
     document.getElementById('btn-start').addEventListener('click', startScanner);
     document.getElementById('btn-stop').addEventListener('click', () => { if(scanner) scanner.stop(); });
