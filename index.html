@@ -2,420 +2,303 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>祥威藥局盤點工具 (雲端快速掃描版)</title>
+    <title>祥威藥局盤點工具 - 高速版</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
-
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
         :root {
-            --primary: #16a085;
-            --primary-soft: #e8f7f3;
-            --accent: #f39c12;
-            --danger: #e74c3c;
-            --text-main: #2c3e50;
-            --text-muted: #7f8c8d;
-            --border-color: #dde3ea;
-            --bg-body: #f5f7fb;
-            --bg-card: #ffffff;
-            --radius-md: 10px;
-            --shadow-soft: 0 4px 12px rgba(0,0,0,0.06);
+            --primary: #2c3e50;
+            --accent: #27ae60;
+            --danger: #c0392b;
+            --bg: #f4f7f6;
         }
-
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         body {
-            font-family: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-            margin: 0; padding: 12px; background: var(--bg-body); color: var(--text-main);
-            line-height: 1.4;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; padding: env(safe-area-inset-top) 12px 20px;
+            background: var(--bg); color: var(--primary);
         }
 
-        h1 {
-            font-size: 20px; margin: 4px auto 10px; text-align: center; color: var(--primary);
-            letter-spacing: 1px; border-bottom: 2px solid var(--primary); display: table; padding-bottom: 4px;
-        }
+        .header { text-align: center; padding: 10px 0; }
+        h1 { font-size: 22px; margin: 0; color: var(--primary); }
 
-        .page-container { max-width: 720px; margin: 0 auto; }
-
-        .section {
-            background: var(--bg-card); border-radius: var(--radius-md);
-            padding: 12px; margin-bottom: 12px; box-shadow: var(--shadow-soft);
-            border: 1px solid rgba(255,255,255,0.8);
-        }
-
-        .section h2 {
-            font-size: 15px; margin: 0 0 8px 0; display: flex; align-items: center; gap: 6px; color: var(--text-main);
-        }
-
-        .section h2::before { content: "●"; font-size: 10px; color: var(--primary); }
-
-        label { display: block; margin-top: 10px; font-size: 14px; font-weight: 500; }
-
-        input, select {
-            width: 100%; font-size: 16px; padding: 8px; margin-top: 5px;
-            border-radius: 6px; border: 1px solid var(--border-color);
-            outline: none; background-color: #fbfcff;
-        }
-
-        input:focus { border-color: var(--primary); background-color: #fff; }
-
-        .small { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
-
-        /* 掃描區域優化 */
-        #reader {
-            width: 100%; max-width: 450px; margin: 10px auto 0;
-            border-radius: 12px; overflow: hidden; border: 2px solid var(--primary);
-            background: #000; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-        }
-
-        #last-result {
-            margin-top: 8px; padding: 6px; border-radius: 6px;
-            background: #eef2f7; border-left: 4px solid var(--primary); font-weight: bold;
-        }
-
-        .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-
-        button {
-            flex: 1; min-width: 120px; font-size: 15px; padding: 10px;
-            border-radius: 8px; border: none; cursor: pointer;
-            display: inline-flex; align-items: center; justify-content: center;
-            gap: 6px; font-weight: 600; transition: all 0.2s;
-        }
-
-        button:active { transform: scale(0.95); }
-
-        #start-scan { background: var(--primary); color: #fff; }
-        #stop-scan { background: #6c757d; color: #fff; }
-        #add-row { background: var(--accent); color: #fff; width: 100%; margin-top: 15px; font-size: 17px; }
-        #download-xlsx { background: #3498db; color: #fff; }
-        #clear-all { background: #fbe9e7; color: var(--danger); }
-
-        .expiry-row { display: flex; gap: 4px; align-items: center; }
-
-        /* 資料庫狀態標籤 */
+        /* 狀態標籤 */
         #db-status {
-            display: inline-block; padding: 4px 12px; border-radius: 20px;
-            font-size: 12px; font-weight: bold; margin-bottom: 8px;
+            font-size: 12px; text-align: center; padding: 4px;
+            border-radius: 4px; margin-bottom: 10px; background: #ddd;
         }
-        .loading { background: #ffeaa7; color: #d35400; }
-        .success { background: #bcffdb; color: #0f7d45; }
-        .error { background: #ff7675; color: #fff; }
+        .online { background: #d1f2eb !important; color: #16a085; }
 
-        /* 表格優化 */
-        .table-wrapper {
-            width: 100%; overflow-x: auto; margin-top: 10px;
-            border-radius: 8px; border: 1px solid #e1e7ee;
+        /* 掃描器高級外框 */
+        #reader-container {
+            position: relative; width: 100%; max-width: 500px; margin: 0 auto;
+            border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            background: #000; border: 3px solid #fff;
         }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 600px; }
-        th, td { padding: 10px 8px; border-bottom: 1px solid #edf0f5; text-align: center; }
-        th { background: #f8fafc; color: #64748b; position: sticky; top: 0; }
+        #reader { width: 100%; }
+
+        /* 掃描框動畫線條 */
+        .scan-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 2;
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+
+        .result-card {
+            background: #fff; border-radius: 12px; padding: 15px; margin-top: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-left: 6px solid var(--accent);
+        }
+
+        .input-group { margin-top: 15px; background: #fff; padding: 15px; border-radius: 12px; }
+        label { display: block; font-size: 13px; color: #7f8c8d; margin-bottom: 4px; }
+        input, select {
+            width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ddd;
+            border-radius: 8px; margin-bottom: 12px; outline: none;
+        }
+
+        .btn-flex { display: flex; gap: 8px; margin-bottom: 10px; }
+        button {
+            flex: 1; padding: 12px; font-size: 16px; font-weight: 600;
+            border-radius: 10px; border: none; cursor: pointer; transition: 0.2s;
+        }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-accent { background: var(--accent); color: #fff; }
+        .btn-torch { background: #f1c40f; color: #000; flex: 0.4; }
         
-        .delete-btn { background: #fff1f0; color: #e74c3c; border: 1px solid #ffa39e; padding: 4px 8px; min-width: auto; }
+        /* 列表樣式 */
+        .table-container { overflow-x: auto; background: #fff; border-radius: 12px; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 500px; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; }
+        th { background: #fafafa; color: #95a5a6; }
 
-        @media (max-width: 480px) {
-            h1 { font-size: 18px; }
-            button { font-size: 14px; padding: 12px 8px; }
+        @keyframes scan {
+            0% { top: 20%; }
+            100% { top: 80%; }
         }
     </style>
 </head>
 <body>
 
-<div class="page-container">
+<div class="header">
     <h1>祥威藥局盤點工具</h1>
+    <div id="db-status">同步雲端資料中...</div>
+</div>
 
-    <div class="section">
-        <div id="db-status" class="loading">正在連線 Google 試算表...</div>
-        <div class="small">資料網址：已連接至 2PACX...WBR05t</div>
-    </div>
+<div id="reader-container">
+    <div id="reader"></div>
+</div>
 
-    <div class="section">
-        <h2>1. 條碼掃描 (針對一維條碼優化)</h2>
-        <div class="btn-group">
-            <button id="start-scan">📷 開啟相機</button>
-            <button id="stop-scan">關閉相機</button>
+<div class="btn-flex" style="margin-top:10px;">
+    <button id="btn-start" class="btn-primary">▶ 開始掃描</button>
+    <button id="btn-torch" class="btn-torch">🔦 燈光</button>
+    <button id="btn-stop" style="background:#ddd;">關閉</button>
+</div>
+
+<div id="last-barcode-display" style="text-align:center; font-size:18px; font-weight:bold; color:var(--accent);">
+    等待掃描中...
+</div>
+
+<div class="result-card">
+    <label>品名</label>
+    <input type="text" id="name" placeholder="自動帶入或手動輸入">
+    
+    <div style="display:flex; gap:8px;">
+        <div style="flex:2">
+            <label>條碼</label>
+            <input type="text" id="barcode" readonly>
         </div>
-        <div id="reader"></div>
-        <div id="last-result">尚未掃描</div>
-        <div class="small" style="color: var(--accent); font-weight: bold;">
-            提示：保持 10-15 公分距離，若條碼太小可「雙擊畫面」放大。
-        </div>
-    </div>
-
-    <div class="section">
-        <h2>2. 確認資料</h2>
-        <label>條碼：<input type="text" id="barcode" placeholder="請掃描或手動輸入"></label>
-        <label>品名：<input type="text" id="name" placeholder="雲端自動帶入..."></label>
-        
-        <label>效期 (年/月/日)：
-            <div class="expiry-row">
-                <select id="exp-year"><option value="">年</option></select>
-                <select id="exp-month">
-                    <option value="">月</option>
-                    <option value="1">01</option><option value="2">02</option><option value="3">03</option>
-                    <option value="4">04</option><option value="5">05</option><option value="6">06</option>
-                    <option value="7">07</option><option value="8">08</option><option value="9">09</option>
-                    <option value="10">10</option><option value="11">11</option><option value="12">12</option>
-                </select>
-                <select id="exp-day"><option value="">日</option></select>
-            </div>
-        </label>
-
-        <label>數量：<input type="number" id="qty" min="1" value="1"></label>
-        <label>備註：<input type="text" id="note" placeholder="門市位置、庫房等"></label>
-
-        <button id="add-row">➕ 加入盤點清單</button>
-    </div>
-
-    <div class="section">
-        <h2>3. 目前盤點清單</h2>
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr><th>品名</th><th>條碼</th><th>數量</th><th>效期</th><th>時間</th><th>操作</th></tr>
-                </thead>
-                <tbody id="table-body"></tbody>
-            </table>
-        </div>
-        <div class="btn-group" style="margin-top: 15px;">
-            <button id="download-xlsx">📥 匯出 Excel</button>
-            <button id="clear-all">🗑️ 清空全部</button>
+        <div style="flex:1">
+            <label>數量</label>
+            <input type="number" id="qty" value="1">
         </div>
     </div>
+
+    <label>效期</label>
+    <div style="display:flex; gap:4px;">
+        <select id="exp-y"></select>
+        <select id="exp-m">
+            <option value="">月</option>
+            <script>for(let i=1;i<=12;i++) document.write(`<option value="${i}">${i}</option>`)</script>
+        </select>
+        <select id="exp-d"></select>
+    </div>
+
+    <button id="btn-add" class="btn-accent" style="width:100%; margin-top:10px;">加入清單</button>
+</div>
+
+<div class="table-container">
+    <table>
+        <thead>
+            <tr><th>品名</th><th>數量</th><th>效期</th><th>操作</th></tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+    </table>
+</div>
+
+<div class="btn-flex" style="margin-top:20px;">
+    <button onclick="exportExcel()" style="background:#3498db; color:#fff;">📥 匯出 Excel</button>
+    <button onclick="clearAll()" style="background:#f2dede; color:#a94442;">清空全部</button>
 </div>
 
 <script>
-    // ===== 配置區 =====
-    const ONLINE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYlvRc0iS91LtXg1laxAMKADMYTXOFGHENh3E-g5QqDCV08F1O8PzfzWEiGdAAwzJpkeiJ2rWBR05t/pub?gid=1142644173&single=true&output=csv";
-    const STORAGE_KEY = "xiangwei_inventory_v1";
-
+    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYlvRc0iS91LtXg1laxAMKADMYTXOFGHENh3E-g5QqDCV08F1O8PzfzWEiGdAAwzJpkeiJ2rWBR05t/pub?gid=1142644173&single=true&output=csv";
+    const STORAGE_KEY = "xw_inventory_pro";
+    
+    let barcodeMap = {};
     let records = [];
-    let barcodeNameMap = {};
-    let html5QrCode = null;
-    let scanning = false;
-    let videoTrack = null;
+    let scanner = null;
+    let isTorchOn = false;
 
-    // DOM 元素
-    const barcodeInput = document.getElementById("barcode");
-    const nameInput = document.getElementById("name");
-    const expYearSel = document.getElementById("exp-year");
-    const expMonthSel = document.getElementById("exp-month");
-    const expDaySel = document.getElementById("exp-day");
-    const qtyInput = document.getElementById("qty");
-    const noteInput = document.getElementById("note");
-    const tableBody = document.getElementById("table-body");
-    const dbStatusEl = document.getElementById("db-status");
-    const lastResultEl = document.getElementById("last-result");
+    // 初始化下拉選單
+    const yearSel = document.getElementById('exp-y');
+    const daySel = document.getElementById('exp-d');
+    const thisYear = new Date().getFullYear();
+    yearSel.innerHTML = `<option value="">年</option>` + Array.from({length:11}, (_,i)=>`<option value="${thisYear+i}">${thisYear+i}</option>`).join('');
+    daySel.innerHTML = `<option value="">日</option>` + Array.from({length:31}, (_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
 
-    // ===== 核心功能：雲端讀取資料庫 =====
-    async function fetchOnlineDatabase() {
+    // 1. 抓取雲端資料 (item_id, cname)
+    async function initCloudDB() {
         try {
-            const response = await fetch(ONLINE_CSV_URL);
-            if (!response.ok) throw new Error("網路請求失敗");
-            
-            const text = await response.text();
+            const res = await fetch(CSV_URL);
+            const text = await res.text();
             const lines = text.split(/\r?\n/);
-            const map = {};
-            
-            for (let line of lines) {
-                if (!line.trim()) continue;
-                // 解析 CSV，處理可能包含逗號的品名
-                let cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+            lines.forEach(line => {
+                const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                 if (cols.length >= 2) {
-                    let id = cols[0].replace(/^"|"$/g, '').trim();
-                    let name = cols[1].replace(/^"|"$/g, '').trim();
-                    if (id && id !== "item_id") map[id] = name;
+                    const id = cols[0].replace(/"/g, '').trim();
+                    const name = cols[1].replace(/"/g, '').trim();
+                    if(id && id !== "item_id") barcodeMap[id] = name;
                 }
-            }
-            barcodeNameMap = map;
-            dbStatusEl.textContent = `✅ 雲端更新成功！共 ${Object.keys(map).length} 筆資料`;
-            dbStatusEl.className = "success";
+            });
+            document.getElementById('db-status').textContent = `✅ 雲端同步完成 (${Object.keys(barcodeMap).length} 筆)`;
+            document.getElementById('db-status').className = 'online';
         } catch (e) {
-            console.error(e);
-            dbStatusEl.textContent = "❌ 雲端同步失敗，請檢查網路";
-            dbStatusEl.className = "error";
+            document.getElementById('db-status').textContent = "⚠️ 離線模式";
         }
     }
 
-    // ===== 核心功能：高速掃描配置 =====
-    async function startScanning() {
-        if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
-        if (scanning) return;
-
+    // 2. 高速掃描配置
+    async function startScanner() {
+        if (!scanner) scanner = new Html5Qrcode("reader");
+        
         const config = {
-            fps: 30, // 提高偵測頻率
-            qrbox: { width: 320, height: 150 }, // 扁平盒狀，適合 1D 條碼
+            fps: 60, // 高偵測率
+            qrbox: { width: 280, height: 140 }, // 針對一維條碼的扁平框
             aspectRatio: 1.0,
             experimentalFeatures: {
-                useBarCodeDetectorIfSupported: true // 重要：開啟 Chrome 內建硬體加速
+                useBarCodeDetectorIfSupported: true // 強制啟動原生硬體加速
             },
             videoConstraints: {
                 facingMode: "environment",
-                width: { min: 640, ideal: 1280, max: 1920 },
-                height: { min: 480, ideal: 720, max: 1080 },
-                focusMode: "continuous" // 連續對焦
+                width: { ideal: 1920 }, // 1080p 解析度
+                height: { ideal: 1080 },
+                focusMode: "continuous"
             }
         };
 
         try {
-            await html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
-                onScanSuccess(decodedText);
-            });
-            scanning = true;
-            lastResultEl.textContent = "🔍 掃描中...";
-            setupDoubleTapZoom();
-        } catch (err) {
-            alert("相機啟動失敗：請確認網址為 HTTPS 或檢查權限。");
-        }
-    }
-
-    function onScanSuccess(decodedText) {
-        barcodeInput.value = decodedText;
-        lastResultEl.textContent = "最新掃描：" + decodedText;
-        
-        // 自動帶入品名
-        if (barcodeNameMap[decodedText]) {
-            nameInput.value = barcodeNameMap[decodedText];
-        } else {
-            nameInput.value = "";
-            nameInput.placeholder = "資料庫無此條碼，請手動輸入";
-        }
-        // 震動回饋 (如果手機支援)
-        if (navigator.vibrate) navigator.vibrate(50);
-    }
-
-    // 雙擊畫面放大功能
-    function setupDoubleTapZoom() {
-        const video = document.querySelector("#reader video");
-        if (!video) return;
-        video.addEventListener("dblclick", () => {
-            const tracks = video.srcObject.getVideoTracks();
-            if (tracks.length > 0) {
-                const track = tracks[0];
-                const caps = track.getCapabilities();
-                if (caps.zoom) {
-                    const currentZoom = track.getConstraints().advanced?.find(a => a.zoom)?.zoom || 1;
-                    const targetZoom = currentZoom > 1 ? 1 : caps.zoom.max / 2;
-                    track.applyConstraints({ advanced: [{ zoom: targetZoom }] });
+            await scanner.start({ facingMode: "environment" }, config, (text) => {
+                // 掃描成功邏輯
+                if (text === document.getElementById('barcode').value) return; // 避免重複掃描
+                
+                // 震動回饋
+                if (navigator.vibrate) navigator.vibrate(60);
+                
+                document.getElementById('barcode').value = text;
+                document.getElementById('last-barcode-display').textContent = "最新條碼：" + text;
+                
+                if (barcodeMap[text]) {
+                    document.getElementById('name').value = barcodeMap[text];
+                } else {
+                    document.getElementById('name').value = "";
+                    document.getElementById('name').placeholder = "找不到品名，請手動輸入";
                 }
-            }
-        });
+            });
+        } catch (err) {
+            alert("相機啟動失敗，請確認 HTTPS 與權限");
+        }
     }
 
-    // ===== 資料管理功能 =====
-    function addRecord() {
-        const bc = barcodeInput.value.trim();
-        const nm = nameInput.value.trim();
-        if (!bc) return alert("請輸入或掃描條碼");
+    // 3. 手電筒控制
+    document.getElementById('btn-torch').addEventListener('click', async () => {
+        if (!scanner) return;
+        isTorchOn = !isTorchOn;
+        try {
+            await scanner.applyVideoConstraints({ focusMode: "continuous", torch: isTorchOn });
+        } catch (e) { console.log("此裝置不支援手電筒"); }
+    });
 
-        const expiry = `${expYearSel.value}/${expMonthSel.value}/${expDaySel.value}`.replace(/\/+$/, "");
+    // 4. 加入清單
+    document.getElementById('btn-add').addEventListener('click', () => {
+        const bc = document.getElementById('barcode').value;
+        const nm = document.getElementById('name').value;
+        if (!bc) return alert("請先掃描條碼");
 
-        const newRec = {
-            name: nm,
+        const record = {
+            name: nm || "未知名稱",
             barcode: bc,
-            qty: qtyInput.value,
-            expiry: expiry,
-            note: noteInput.value,
+            qty: document.getElementById('qty').value,
+            expiry: `${yearSel.value}/${document.getElementById('exp-m').value}/${daySel.value}`,
             time: new Date().toLocaleTimeString()
         };
 
-        records.unshift(newRec); // 新的排前面
-        renderTable();
-        saveData();
+        records.unshift(record);
+        updateTable();
+        saveToLocal();
+        
+        // 加入後只清出品名與條碼，不關相機，方便連續掃描
+        document.getElementById('barcode').value = "";
+        document.getElementById('name').value = "";
+        document.getElementById('qty').value = "1";
+    });
 
-        // 加入後清空輸入框，方便下一筆
-        barcodeInput.value = "";
-        nameInput.value = "";
-        qtyInput.value = "1";
-    }
-
-    function renderTable() {
-        tableBody.innerHTML = "";
-        records.forEach((r, i) => {
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-                <td>${r.name}</td>
-                <td><code style="font-size:11px">${r.barcode}</code></td>
+    function updateTable() {
+        const tbody = document.getElementById('table-body');
+        tbody.innerHTML = records.map((r, i) => `
+            <tr>
+                <td style="text-align:left">${r.name}</td>
                 <td>${r.qty}</td>
                 <td>${r.expiry}</td>
-                <td>${r.time}</td>
-                <td><button class="delete-btn" onclick="deleteRec(${i})">刪除</button></td>
-            `;
-            tableBody.appendChild(tr);
-        });
+                <td><button class="delete-btn" onclick="deleteItem(${i})">刪除</button></td>
+            </tr>
+        `).join('');
     }
 
-    window.deleteRec = (i) => {
+    window.deleteItem = (i) => {
         records.splice(i, 1);
-        renderTable();
-        saveData();
+        updateTable();
+        saveToLocal();
     };
 
-    function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }
-    function loadData() {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-            records = JSON.parse(raw);
-            renderTable();
-        }
+    function saveToLocal() { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }
+    function loadLocal() {
+        const data = localStorage.getItem(STORAGE_KEY);
+        if (data) { records = JSON.parse(data); updateTable(); }
     }
 
-    // 初始化年份選單
-    function initSelects() {
-        const y = new Date().getFullYear();
-        for (let i = 0; i <= 10; i++) {
-            const opt = document.createElement("option");
-            opt.value = y + i; opt.textContent = y + i;
-            expYearSel.appendChild(opt);
-        }
-        for (let i = 1; i <= 31; i++) {
-            const opt = document.createElement("option");
-            opt.value = i; opt.textContent = i;
-            expDaySel.appendChild(opt);
-        }
-    }
-
-    // 匯出 Excel
-    document.getElementById("download-xlsx").addEventListener("click", () => {
-        if (!records.length) return alert("沒有盤點資料可匯出");
+    function exportExcel() {
+        if (records.length === 0) return alert("目前沒有資料");
         const ws = XLSX.utils.json_to_sheet(records);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "盤點紀錄");
-        XLSX.writeFile(wb, `祥威盤點_${new Date().toLocaleDateString()}.xlsx`);
-    });
+        XLSX.writeFile(wb, `祥威盤點_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
 
-    // 事件監聽
-    document.getElementById("start-scan").addEventListener("click", startScanning);
-    document.getElementById("stop-scan").addEventListener("click", async () => {
-        if (html5QrCode) {
-            await html5QrCode.stop();
-            scanning = false;
-            lastResultEl.textContent = "已關閉相機";
+    function clearAll() {
+        if (confirm("確定清空這支手機的紀錄？")) {
+            records = []; updateTable(); localStorage.removeItem(STORAGE_KEY);
         }
-    });
-    document.getElementById("add-row").addEventListener("click", addRecord);
-    document.getElementById("clear-all").addEventListener("click", () => {
-        if (confirm("確定要清空這支手機目前的盤點資料嗎？資料無法復原喔！")) {
-            records = [];
-            renderTable();
-            localStorage.removeItem(STORAGE_KEY);
-        }
-    });
+    }
 
-    // 條碼手動變動時也嘗試帶出品名
-    barcodeInput.addEventListener("input", () => {
-        const v = barcodeInput.value.trim();
-        if (barcodeNameMap[v]) nameInput.value = barcodeNameMap[v];
-    });
+    document.getElementById('btn-start').addEventListener('click', startScanner);
+    document.getElementById('btn-stop').addEventListener('click', () => { if(scanner) scanner.stop(); });
 
-    // 系統初始化
-    (async function init() {
-        initSelects();
-        loadData();
-        await fetchOnlineDatabase();
-    })();
+    initCloudDB();
+    loadLocal();
 
 </script>
-
 </body>
 </html>
