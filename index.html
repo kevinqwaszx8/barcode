@@ -28,21 +28,43 @@
 
         h1 { font-size: 18px; text-align: center; margin: 10px 0; color: var(--primary); }
 
-        /* 狀態標籤 */
         #db-status {
             font-size: 11px; text-align: center; padding: 3px;
             border-radius: 4px; background: #eee; margin-bottom: 5px;
         }
         .online { background: #d1f2eb !important; color: #16a085; }
 
-        /* 掃描視窗縮小優化 */
+        /* --- 修正：掃描區域置中優化 --- */
         #reader-wrapper {
-            position: relative; width: 100%; max-width: 400px; margin: 0 auto;
-            border-radius: 12px; overflow: hidden; 
-            border: 2px solid var(--primary); background: #000;
-            max-height: 200px; /* 限制高度，不佔版面 */
+            position: relative; 
+            width: 100%; 
+            max-width: 400px; 
+            margin: 0 auto;
+            border-radius: 12px; 
+            overflow: hidden; 
+            border: 2px solid var(--primary); 
+            background: #000;
+            height: 200px; /* 固定容器高度 */
+            display: flex;
+            align-items: center; /* 垂直置中 */
+            justify-content: center; /* 水平置中 */
         }
-        #reader { width: 100%; }
+        
+        #reader { 
+            width: 100%; 
+        }
+
+        /* 強制套件內部的影片區域置中 */
+        #reader__scan_region {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #reader video {
+            object-fit: cover; /* 確保影片填滿但不變形 */
+        }
+        /* --------------------------- */
 
         label { display: block; font-size: 12px; color: #7f8c8d; margin-bottom: 2px; margin-top: 8px; }
         
@@ -61,11 +83,10 @@
         .btn-accent { background: var(--accent); color: #fff; }
         .btn-torch { background: #f1c40f; color: #000; flex: 0.3; }
         
-        /* 列表樣式 */
         .table-container { overflow-x: auto; background: #fff; border-radius: 8px; margin-top: 10px; }
         table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 550px; }
         th, td { padding: 8px; border-bottom: 1px solid #eee; text-align: center; }
-        th { background: #fafafa; color: #95a5a6; }
+        th { background: #f8fafc; color: #64748b; position: sticky; top: 0; }
 
         .last-scanned {
             text-align: center; font-size: 14px; font-weight: bold; 
@@ -137,7 +158,7 @@
 
 <div class="btn-flex" style="margin-top:20px;">
     <button onclick="exportExcel()" style="background:#3498db; color:#fff;">📥 匯出 Excel</button>
-    <button onclick="clearAll()" style="background:#f2dede; color:#a94442;">清空</button>
+    <button onclick="clearAll()" style="background:#f2dede; color:#a94442;">清空全部</button>
 </div>
 
 <script>
@@ -177,13 +198,13 @@
         }
     }
 
-    // 2. 啟動高速掃描 (縮小區域)
+    // 2. 啟動高速掃描 (置中優化)
     async function startScanner() {
         if (!scanner) scanner = new Html5Qrcode("reader");
         
         const config = {
             fps: 60,
-            // 縮小掃描計算區域，框框更小速度更快
+            // 縮小掃描框，並確保掃描演算法也在正中央執行
             qrbox: { width: 250, height: 120 }, 
             aspectRatio: 1.0,
             experimentalFeatures: { useBarCodeDetectorIfSupported: true },
@@ -203,12 +224,11 @@
                 document.getElementById('barcode').value = text;
                 document.getElementById('last-barcode-display').textContent = "✔ 掃描成功：" + text;
                 
-                // 嘗試匹配品名，若找不到則讓使用者手動輸入
                 if (barcodeMap[text]) {
                     document.getElementById('name').value = barcodeMap[text];
                 } else {
                     document.getElementById('name').value = "";
-                    document.getElementById('name').placeholder = "資料庫查無此品項，請手動輸入";
+                    document.getElementById('name').placeholder = "資料庫查無此品項";
                 }
             });
         } catch (err) {
@@ -229,8 +249,9 @@
         const user = document.getElementById('user').value.trim();
         const bc = document.getElementById('barcode').value.trim();
         const nm = document.getElementById('name').value.trim();
-        if (!bc) return alert("請輸入或掃描條碼");
+        
         if (!user) return alert("請輸入使用者姓名");
+        if (!bc) return alert("請輸入或掃描條碼");
 
         const expiry = yearSel.value ? `${yearSel.value}/${document.getElementById('exp-m').value}/${daySel.value}` : "未填";
 
@@ -248,14 +269,13 @@
         updateTable();
         saveToLocal();
         
-        // 加入後清空輸入框，相機不關閉
+        // 加入後清空輸入框
         document.getElementById('barcode').value = "";
         document.getElementById('name').value = "";
         document.getElementById('qty').value = "1";
         document.getElementById('note').value = "";
     });
 
-    // 介面更新與儲存邏輯
     function updateTable() {
         const tbody = document.getElementById('table-body');
         tbody.innerHTML = records.map((r, i) => `
@@ -265,7 +285,7 @@
                 <td>${r.qty}</td>
                 <td>${r.expiry}</td>
                 <td>${r.note}</td>
-                <td><button style="background:none; color:red; border:1px solid red; padding:2px 5px;" onclick="deleteItem(${i})">刪除</button></td>
+                <td><button style="background:none; color:red; border:1px solid red; padding:2px 5px; border-radius:4px" onclick="deleteItem(${i})">刪除</button></td>
             </tr>
         `).join('');
     }
