@@ -2,18 +2,18 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>盤點掃條碼工具 - 雲端更新版</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>祥威藥局盤點工具 (雲端快速掃描版)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
         :root {
-            --primary: #16a085;   /* 主色：藍綠 */
+            --primary: #16a085;
             --primary-soft: #e8f7f3;
-            --accent: #f39c12;    /* 強調色：橘色 */
-            --danger: #e74c3c;    /* 刪除、警告用 */
+            --accent: #f39c12;
+            --danger: #e74c3c;
             --text-main: #2c3e50;
             --text-muted: #7f8c8d;
             --border-color: #dde3ea;
@@ -23,226 +23,179 @@
             --shadow-soft: 0 4px 12px rgba(0,0,0,0.06);
         }
 
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         body {
             font-family: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-            margin: 0;
-            padding: 12px;
-            background: var(--bg-body);
-            color: var(--text-main);
+            margin: 0; padding: 12px; background: var(--bg-body); color: var(--text-main);
+            line-height: 1.4;
         }
 
         h1 {
-            font-size: 20px;
-            margin: 4px auto 10px;
-            text-align: center;
-            color: var(--primary);
-            letter-spacing: 1px;
+            font-size: 20px; margin: 4px auto 10px; text-align: center; color: var(--primary);
+            letter-spacing: 1px; border-bottom: 2px solid var(--primary); display: table; padding-bottom: 4px;
         }
 
         .page-container { max-width: 720px; margin: 0 auto; }
 
         .section {
-            background: var(--bg-card);
-            border-radius: var(--radius-md);
-            padding: 10px 12px;
-            margin-bottom: 12px;
-            box-shadow: var(--shadow-soft);
+            background: var(--bg-card); border-radius: var(--radius-md);
+            padding: 12px; margin-bottom: 12px; box-shadow: var(--shadow-soft);
             border: 1px solid rgba(255,255,255,0.8);
         }
 
         .section h2 {
-            font-size: 16px;
-            margin: 0 0 6px 0;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            font-size: 15px; margin: 0 0 8px 0; display: flex; align-items: center; gap: 6px; color: var(--text-main);
         }
 
-        .section h2::before {
-            content: "●";
-            font-size: 10px;
-            color: var(--primary);
-        }
+        .section h2::before { content: "●"; font-size: 10px; color: var(--primary); }
 
-        label { display: block; margin-top: 8px; font-size: 14px; color: var(--text-main); }
+        label { display: block; margin-top: 10px; font-size: 14px; font-weight: 500; }
 
         input, select {
-            width: 100%;
-            font-size: 15px;
-            padding: 6px 8px;
-            margin-top: 4px;
-            border-radius: 6px;
-            border: 1px solid var(--border-color);
-            outline: none;
-            transition: border-color 0.15s, background-color 0.15s;
-            background-color: #fbfcff;
+            width: 100%; font-size: 16px; padding: 8px; margin-top: 5px;
+            border-radius: 6px; border: 1px solid var(--border-color);
+            outline: none; background-color: #fbfcff;
         }
 
-        input:focus, select:focus {
-            border-color: var(--primary);
-            background-color: #ffffff;
-        }
+        input:focus { border-color: var(--primary); background-color: #fff; }
 
-        .small { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+        .small { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
 
-        .expiry-row { display: flex; gap: 4px; align-items: center; }
-        .expiry-row select { flex: 1 1 auto; }
-        .expiry-row span { font-size: 13px; color: var(--text-muted); white-space: nowrap; }
-
+        /* 掃描區域優化 */
         #reader {
-            width: 100%;
-            max-width: 420px;
-            margin: 8px auto 0;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px dashed var(--border-color);
-            background: #000;
+            width: 100%; max-width: 450px; margin: 10px auto 0;
+            border-radius: 12px; overflow: hidden; border: 2px solid var(--primary);
+            background: #000; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
         }
 
         #last-result {
-            margin-top: 6px;
-            padding: 4px 6px;
-            border-radius: 6px;
-            background: #f8fafc;
-            border: 1px dashed #e1e7ee;
+            margin-top: 8px; padding: 6px; border-radius: 6px;
+            background: #eef2f7; border-left: 4px solid var(--primary); font-weight: bold;
         }
 
-        /* 按鈕樣式 */
+        .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
         button {
-            font-size: 15px;
-            padding: 7px 10px;
-            border-radius: 999px;
-            border: none;
-            cursor: pointer;
-            margin-right: 6px;
-            margin-top: 8px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            transition: transform 0.08s ease;
-            white-space: nowrap;
+            flex: 1; min-width: 120px; font-size: 15px; padding: 10px;
+            border-radius: 8px; border: none; cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: 6px; font-weight: 600; transition: all 0.2s;
         }
 
-        button:active { transform: translateY(1px) scale(0.99); }
+        button:active { transform: scale(0.95); }
 
-        #start-scan { background: var(--primary); color: #fff; box-shadow: 0 3px 8px rgba(22,160,133,0.3); }
-        #stop-scan { background: #ecf0f1; color: #34495e; }
-        #add-row { background: var(--accent); color: #fff; box-shadow: 0 3px 8px rgba(243,156,18,0.3); }
+        #start-scan { background: var(--primary); color: #fff; }
+        #stop-scan { background: #6c757d; color: #fff; }
+        #add-row { background: var(--accent); color: #fff; width: 100%; margin-top: 15px; font-size: 17px; }
         #download-xlsx { background: #3498db; color: #fff; }
         #clear-all { background: #fbe9e7; color: var(--danger); }
 
-        .table-wrapper {
-            width: 100%;
-            overflow-x: auto;
-            margin-top: 6px;
-            border-radius: 8px;
-            border: 1px solid #e1e7ee;
-            background: #fff;
-        }
+        .expiry-row { display: flex; gap: 4px; align-items: center; }
 
-        table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 640px; }
-        th, td { padding: 6px; border-bottom: 1px solid #edf0f5; text-align: center; }
-        th { background: #f5f7fb; font-weight: 600; position: sticky; top: 0; z-index: 1; }
+        /* 資料庫狀態標籤 */
+        #db-status {
+            display: inline-block; padding: 4px 12px; border-radius: 20px;
+            font-size: 12px; font-weight: bold; margin-bottom: 8px;
+        }
+        .loading { background: #ffeaa7; color: #d35400; }
+        .success { background: #bcffdb; color: #0f7d45; }
+        .error { background: #ff7675; color: #fff; }
+
+        /* 表格優化 */
+        .table-wrapper {
+            width: 100%; overflow-x: auto; margin-top: 10px;
+            border-radius: 8px; border: 1px solid #e1e7ee;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 600px; }
+        th, td { padding: 10px 8px; border-bottom: 1px solid #edf0f5; text-align: center; }
+        th { background: #f8fafc; color: #64748b; position: sticky; top: 0; }
+        
+        .delete-btn { background: #fff1f0; color: #e74c3c; border: 1px solid #ffa39e; padding: 4px 8px; min-width: auto; }
 
         @media (max-width: 480px) {
-            button { width: calc(50% - 6px); }
+            h1 { font-size: 18px; }
+            button { font-size: 14px; padding: 12px 8px; }
         }
-        
-        /* 線上更新狀態條 */
-        #db-status {
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            margin-bottom: 10px;
-            display: inline-block;
-        }
-        .status-loading { background: #fff3cd; color: #856404; }
-        .status-success { background: #d4edda; color: #155724; }
-        .status-error { background: #f8d7da; color: #721c24; }
     </style>
 </head>
 <body>
+
 <div class="page-container">
-    <h1>祥威藥局盤點工具 (雲端版)</h1>
+    <h1>祥威藥局盤點工具</h1>
 
     <div class="section">
-        <h2>資料庫狀態</h2>
-        <div id="db-status" class="status-loading">正在從雲端更新品名資料...</div>
-        <div class="small">※ 每次開啟網頁皆會自動讀取 Google 試算表最新資料。</div>
+        <div id="db-status" class="loading">正在連線 Google 試算表...</div>
+        <div class="small">資料網址：已連接至 2PACX...WBR05t</div>
     </div>
 
     <div class="section">
-        <h2>0. 使用者</h2>
-        <label>使用者名稱：<input type="text" id="user" placeholder="例如：小明"></label>
-    </div>
-
-    <div class="section">
-        <h2>1. 條碼掃描</h2>
-        <div class="scan-buttons">
-            <button id="start-scan">開始掃描</button>
-            <button id="stop-scan">停止掃描</button>
+        <h2>1. 條碼掃描 (針對一維條碼優化)</h2>
+        <div class="btn-group">
+            <button id="start-scan">📷 開啟相機</button>
+            <button id="stop-scan">關閉相機</button>
         </div>
         <div id="reader"></div>
-        <div id="last-result" class="small">最後掃描結果：尚未掃描</div>
-        <div id="zoom-hint" class="small"></div>
+        <div id="last-result">尚未掃描</div>
+        <div class="small" style="color: var(--accent); font-weight: bold;">
+            提示：保持 10-15 公分距離，若條碼太小可「雙擊畫面」放大。
+        </div>
     </div>
 
     <div class="section">
-        <h2>2. 資料輸入</h2>
-        <label>條碼：<input type="text" id="barcode" placeholder="掃描後自動帶入"></label>
-        <label>品名：<input type="text" id="name" placeholder="自動對照或手動輸入"></label>
-        <label>效期：
+        <h2>2. 確認資料</h2>
+        <label>條碼：<input type="text" id="barcode" placeholder="請掃描或手動輸入"></label>
+        <label>品名：<input type="text" id="name" placeholder="雲端自動帶入..."></label>
+        
+        <label>效期 (年/月/日)：
             <div class="expiry-row">
-                <select id="exp-year"><option value="">年</option></select><span>年</span>
+                <select id="exp-year"><option value="">年</option></select>
                 <select id="exp-month">
                     <option value="">月</option>
-                    <option value="1">1</option><option value="2">2</option><option value="3">3</option>
-                    <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-                    <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                    <option value="1">01</option><option value="2">02</option><option value="3">03</option>
+                    <option value="4">04</option><option value="5">05</option><option value="6">06</option>
+                    <option value="7">07</option><option value="8">08</option><option value="9">09</option>
                     <option value="10">10</option><option value="11">11</option><option value="12">12</option>
-                </select><span>月</span>
-                <select id="exp-day"><option value="">日</option></select><span>日</span>
+                </select>
+                <select id="exp-day"><option value="">日</option></select>
             </div>
         </label>
+
         <label>數量：<input type="number" id="qty" min="1" value="1"></label>
-        <label>備註：<input type="text" id="note" placeholder="可不填"></label>
-        <button id="add-row">加入清單</button>
+        <label>備註：<input type="text" id="note" placeholder="門市位置、庫房等"></label>
+
+        <button id="add-row">➕ 加入盤點清單</button>
     </div>
 
     <div class="section">
-        <h2>3. 目前清單</h2>
+        <h2>3. 目前盤點清單</h2>
         <div class="table-wrapper">
             <table>
                 <thead>
-                    <tr><th>#</th><th>使用者</th><th>條碼</th><th>品名</th><th>效期</th><th>數量</th><th>備註</th><th>建立時間</th><th>刪除</th></tr>
+                    <tr><th>品名</th><th>條碼</th><th>數量</th><th>效期</th><th>時間</th><th>操作</th></tr>
                 </thead>
                 <tbody id="table-body"></tbody>
             </table>
         </div>
-        <div class="list-buttons">
-            <button id="download-xlsx">下載 Excel</button>
-            <button id="clear-all">清空全部</button>
+        <div class="btn-group" style="margin-top: 15px;">
+            <button id="download-xlsx">📥 匯出 Excel</button>
+            <button id="clear-all">🗑️ 清空全部</button>
         </div>
     </div>
 </div>
 
 <script>
-    // ===== 1. 你的 Google Sheets CSV 網址 =====
+    // ===== 配置區 =====
     const ONLINE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYlvRc0iS91LtXg1laxAMKADMYTXOFGHENh3E-g5QqDCV08F1O8PzfzWEiGdAAwzJpkeiJ2rWBR05t/pub?gid=1142644173&single=true&output=csv";
+    const STORAGE_KEY = "xiangwei_inventory_v1";
 
-    // 基本變數
-    const STORAGE_KEY = "inventory_records_v3";
-    const records = [];
+    let records = [];
     let barcodeNameMap = {};
     let html5QrCode = null;
     let scanning = false;
     let videoTrack = null;
 
     // DOM 元素
-    const userInput = document.getElementById("user");
     const barcodeInput = document.getElementById("barcode");
     const nameInput = document.getElementById("name");
     const expYearSel = document.getElementById("exp-year");
@@ -253,189 +206,216 @@
     const tableBody = document.getElementById("table-body");
     const dbStatusEl = document.getElementById("db-status");
     const lastResultEl = document.getElementById("last-result");
-    const zoomHintEl = document.getElementById("zoom-hint");
 
-    const startScanBtn = document.getElementById("start-scan");
-    const stopScanBtn = document.getElementById("stop-scan");
-    const addRowBtn = document.getElementById("add-row");
-    const downloadXlsxBtn = document.getElementById("download-xlsx");
-    const clearAllBtn = document.getElementById("clear-all");
-
-    // ===== 2. 線上更新邏輯 =====
+    // ===== 核心功能：雲端讀取資料庫 =====
     async function fetchOnlineDatabase() {
         try {
-            dbStatusEl.textContent = "正在連線雲端資料庫...";
-            dbStatusEl.className = "status-loading";
-
             const response = await fetch(ONLINE_CSV_URL);
             if (!response.ok) throw new Error("網路請求失敗");
             
             const text = await response.text();
-            const map = {};
             const lines = text.split(/\r?\n/);
+            const map = {};
             
-            // 解析 CSV (假設 A 欄是 item_id, B 欄是 cname)
-            for (let i = 0; i < lines.length; i++) {
-                let line = lines[i].trim();
-                if (!line) continue;
-                
-                // 簡單處理 CSV 分隔 (處理逗號與引號)
+            for (let line of lines) {
+                if (!line.trim()) continue;
+                // 解析 CSV，處理可能包含逗號的品名
                 let cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                 if (cols.length >= 2) {
-                    let bc = cols[0].replace(/^"|"$/g, '').trim();
-                    let nm = cols[1].replace(/^"|"$/g, '').trim();
-                    // 排除標題列
-                    if (bc && bc !== "item_id" && bc !== "條碼") {
-                        map[bc] = nm;
-                    }
+                    let id = cols[0].replace(/^"|"$/g, '').trim();
+                    let name = cols[1].replace(/^"|"$/g, '').trim();
+                    if (id && id !== "item_id") map[id] = name;
                 }
             }
-
             barcodeNameMap = map;
-            const count = Object.keys(map).length;
-            dbStatusEl.textContent = `✅ 雲端更新成功！共載入 ${count} 筆藥品資料。`;
-            dbStatusEl.className = "status-success";
-            
+            dbStatusEl.textContent = `✅ 雲端更新成功！共 ${Object.keys(map).length} 筆資料`;
+            dbStatusEl.className = "success";
         } catch (e) {
             console.error(e);
-            dbStatusEl.textContent = "❌ 雲端讀取失敗，將無法自動帶入品名。";
-            dbStatusEl.className = "status-error";
+            dbStatusEl.textContent = "❌ 雲端同步失敗，請檢查網路";
+            dbStatusEl.className = "error";
         }
     }
 
-    // 初始化
-    (async function init() {
-        // 設定年份
-        const currentYear = new Date().getFullYear();
-        for (let y = currentYear; y <= currentYear + 10; y++) {
-            const opt = document.createElement("option"); opt.value = y; opt.textContent = y;
-            expYearSel.appendChild(opt);
-        }
-        // 設定日期
-        for (let d = 1; d <= 31; d++) {
-            const opt = document.createElement("option"); opt.value = d; opt.textContent = d;
-            expDaySel.appendChild(opt);
-        }
+    // ===== 核心功能：高速掃描配置 =====
+    async function startScanning() {
+        if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+        if (scanning) return;
 
-        loadRecordsFromStorage();
-        await fetchOnlineDatabase();
-    })();
+        const config = {
+            fps: 30, // 提高偵測頻率
+            qrbox: { width: 320, height: 150 }, // 扁平盒狀，適合 1D 條碼
+            aspectRatio: 1.0,
+            experimentalFeatures: {
+                useBarCodeDetectorIfSupported: true // 重要：開啟 Chrome 內建硬體加速
+            },
+            videoConstraints: {
+                facingMode: "environment",
+                width: { min: 640, ideal: 1280, max: 1920 },
+                height: { min: 480, ideal: 720, max: 1080 },
+                focusMode: "continuous" // 連續對焦
+            }
+        };
 
-    // 條碼變動自動帶出品名
-    barcodeInput.addEventListener("change", () => {
-        const val = barcodeInput.value.trim();
-        if (barcodeNameMap[val]) {
-            nameInput.value = barcodeNameMap[val];
+        try {
+            await html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+                onScanSuccess(decodedText);
+            });
+            scanning = true;
+            lastResultEl.textContent = "🔍 掃描中...";
+            setupDoubleTapZoom();
+        } catch (err) {
+            alert("相機啟動失敗：請確認網址為 HTTPS 或檢查權限。");
         }
-    });
+    }
 
-    // 掃描成功回呼
     function onScanSuccess(decodedText) {
         barcodeInput.value = decodedText;
-        lastResultEl.textContent = "最後掃描結果：" + decodedText;
+        lastResultEl.textContent = "最新掃描：" + decodedText;
+        
+        // 自動帶入品名
         if (barcodeNameMap[decodedText]) {
             nameInput.value = barcodeNameMap[decodedText];
         } else {
             nameInput.value = "";
+            nameInput.placeholder = "資料庫無此條碼，請手動輸入";
         }
-        qtyInput.value = "1";
+        // 震動回饋 (如果手機支援)
+        if (navigator.vibrate) navigator.vibrate(50);
     }
 
-    // 啟動相機
-    startScanBtn.addEventListener("click", async () => {
-        try {
-            if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
-            if (scanning) return;
+    // 雙擊畫面放大功能
+    function setupDoubleTapZoom() {
+        const video = document.querySelector("#reader video");
+        if (!video) return;
+        video.addEventListener("dblclick", () => {
+            const tracks = video.srcObject.getVideoTracks();
+            if (tracks.length > 0) {
+                const track = tracks[0];
+                const caps = track.getCapabilities();
+                if (caps.zoom) {
+                    const currentZoom = track.getConstraints().advanced?.find(a => a.zoom)?.zoom || 1;
+                    const targetZoom = currentZoom > 1 ? 1 : caps.zoom.max / 2;
+                    track.applyConstraints({ advanced: [{ zoom: targetZoom }] });
+                }
+            }
+        });
+    }
 
-            await html5QrCode.start(
-                { facingMode: "environment" },
-                { fps: 20, qrbox: { width: 300, height: 150 }, aspectRatio: 4/3 },
-                onScanSuccess
-            );
-            scanning = true;
-            lastResultEl.textContent = "最後掃描結果：掃描中...";
-        } catch (err) {
-            alert("相機開啟失敗，請檢查權限或是否為 HTTPS 網址。");
-        }
-    });
-
-    stopScanBtn.addEventListener("click", async () => {
-        if (html5QrCode && scanning) {
-            await html5QrCode.stop();
-            scanning = false;
-            lastResultEl.textContent = "最後掃描結果：已停止";
-        }
-    });
-
-    // 加入清單
-    addRowBtn.addEventListener("click", () => {
-        const barcode = barcodeInput.value.trim();
-        if (!barcode) return alert("請輸入條碼");
+    // ===== 資料管理功能 =====
+    function addRecord() {
+        const bc = barcodeInput.value.trim();
+        const nm = nameInput.value.trim();
+        if (!bc) return alert("請輸入或掃描條碼");
 
         const expiry = `${expYearSel.value}/${expMonthSel.value}/${expDaySel.value}`.replace(/\/+$/, "");
 
-        records.push({
-            user: userInput.value.trim(),
-            barcode: barcode,
-            name: nameInput.value.trim(),
-            expiryDisplay: expiry,
+        const newRec = {
+            name: nm,
+            barcode: bc,
             qty: qtyInput.value,
-            note: noteInput.value.trim(),
-            createdAt: new Date().toLocaleString()
-        });
+            expiry: expiry,
+            note: noteInput.value,
+            time: new Date().toLocaleTimeString()
+        };
 
+        records.unshift(newRec); // 新的排前面
         renderTable();
-        saveRecordsToStorage();
+        saveData();
 
+        // 加入後清空輸入框，方便下一筆
         barcodeInput.value = "";
         nameInput.value = "";
         qtyInput.value = "1";
-    });
+    }
 
     function renderTable() {
         tableBody.innerHTML = "";
-        records.forEach((rec, i) => {
+        records.forEach((r, i) => {
             const tr = document.createElement("tr");
             tr.innerHTML = `
-                <td>${i + 1}</td><td>${rec.user}</td><td>${rec.barcode}</td>
-                <td>${rec.name}</td><td>${rec.expiryDisplay}</td><td>${rec.qty}</td>
-                <td>${rec.note}</td><td>${rec.createdAt}</td>
-                <td><button onclick="deleteRecord(${i})">刪除</button></td>
+                <td>${r.name}</td>
+                <td><code style="font-size:11px">${r.barcode}</code></td>
+                <td>${r.qty}</td>
+                <td>${r.expiry}</td>
+                <td>${r.time}</td>
+                <td><button class="delete-btn" onclick="deleteRec(${i})">刪除</button></td>
             `;
             tableBody.appendChild(tr);
         });
     }
 
-    window.deleteRecord = (i) => {
+    window.deleteRec = (i) => {
         records.splice(i, 1);
         renderTable();
-        saveRecordsToStorage();
+        saveData();
     };
 
-    function saveRecordsToStorage() { localStorage.setItem(STORAGE_KEY, JSON.stringify({ records })); }
-    function loadRecordsFromStorage() {
+    function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }
+    function loadData() {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
-            JSON.parse(raw).records.forEach(r => records.push(r));
+            records = JSON.parse(raw);
             renderTable();
         }
     }
 
-    downloadXlsxBtn.addEventListener("click", () => {
-        if (!records.length) return alert("沒有資料");
+    // 初始化年份選單
+    function initSelects() {
+        const y = new Date().getFullYear();
+        for (let i = 0; i <= 10; i++) {
+            const opt = document.createElement("option");
+            opt.value = y + i; opt.textContent = y + i;
+            expYearSel.appendChild(opt);
+        }
+        for (let i = 1; i <= 31; i++) {
+            const opt = document.createElement("option");
+            opt.value = i; opt.textContent = i;
+            expDaySel.appendChild(opt);
+        }
+    }
+
+    // 匯出 Excel
+    document.getElementById("download-xlsx").addEventListener("click", () => {
+        if (!records.length) return alert("沒有盤點資料可匯出");
         const ws = XLSX.utils.json_to_sheet(records);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "盤點紀錄");
-        XLSX.writeFile(wb, `盤點_${new Date().toLocaleDateString()}.xlsx`);
+        XLSX.writeFile(wb, `祥威盤點_${new Date().toLocaleDateString()}.xlsx`);
     });
 
-    clearAllBtn.addEventListener("click", () => {
-        if (confirm("確定清空全部？")) {
-            records.length = 0;
+    // 事件監聽
+    document.getElementById("start-scan").addEventListener("click", startScanning);
+    document.getElementById("stop-scan").addEventListener("click", async () => {
+        if (html5QrCode) {
+            await html5QrCode.stop();
+            scanning = false;
+            lastResultEl.textContent = "已關閉相機";
+        }
+    });
+    document.getElementById("add-row").addEventListener("click", addRecord);
+    document.getElementById("clear-all").addEventListener("click", () => {
+        if (confirm("確定要清空這支手機目前的盤點資料嗎？資料無法復原喔！")) {
+            records = [];
             renderTable();
             localStorage.removeItem(STORAGE_KEY);
         }
     });
+
+    // 條碼手動變動時也嘗試帶出品名
+    barcodeInput.addEventListener("input", () => {
+        const v = barcodeInput.value.trim();
+        if (barcodeNameMap[v]) nameInput.value = barcodeNameMap[v];
+    });
+
+    // 系統初始化
+    (async function init() {
+        initSelects();
+        loadData();
+        await fetchOnlineDatabase();
+    })();
+
 </script>
+
 </body>
 </html>
