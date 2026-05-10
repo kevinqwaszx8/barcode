@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>祥威藥局盤點工具 - 專業增強版</title>
+    <title>祥威藥局盤點工具 - 雲端高級版</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
@@ -34,37 +34,14 @@
         }
         .online { background: #d1f2eb !important; color: #16a085; }
 
-        /* --- 修正：掃描區域置中優化 --- */
+        /* 掃描區域置中 */
         #reader-wrapper {
-            position: relative; 
-            width: 100%; 
-            max-width: 400px; 
-            margin: 0 auto;
-            border-radius: 12px; 
-            overflow: hidden; 
-            border: 2px solid var(--primary); 
-            background: #000;
-            height: 200px; /* 固定容器高度 */
-            display: flex;
-            align-items: center; /* 垂直置中 */
-            justify-content: center; /* 水平置中 */
+            position: relative; width: 100%; max-width: 400px; margin: 0 auto;
+            border-radius: 12px; overflow: hidden; 
+            border: 2px solid var(--primary); background: #000;
+            height: 180px; display: flex; align-items: center; justify-content: center;
         }
-        
-        #reader { 
-            width: 100%; 
-        }
-
-        /* 強制套件內部的影片區域置中 */
-        #reader__scan_region {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        #reader video {
-            object-fit: cover; /* 確保影片填滿但不變形 */
-        }
-        /* --------------------------- */
+        #reader { width: 100%; }
 
         label { display: block; font-size: 12px; color: #7f8c8d; margin-bottom: 2px; margin-top: 8px; }
         
@@ -73,6 +50,7 @@
             border-radius: 6px; outline: none; transition: 0.2s;
         }
         input:focus { border-color: var(--accent); }
+        input[readonly] { background-color: #f0f0f0; color: #7f8c8d; border: 1px dashed #ccc; }
 
         .btn-flex { display: flex; gap: 8px; margin: 8px 0; }
         button {
@@ -84,9 +62,9 @@
         .btn-torch { background: #f1c40f; color: #000; flex: 0.3; }
         
         .table-container { overflow-x: auto; background: #fff; border-radius: 8px; margin-top: 10px; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 550px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 600px; }
         th, td { padding: 8px; border-bottom: 1px solid #eee; text-align: center; }
-        th { background: #f8fafc; color: #64748b; position: sticky; top: 0; }
+        th { background: #fafafa; color: #64748b; }
 
         .last-scanned {
             text-align: center; font-size: 14px; font-weight: bold; 
@@ -120,25 +98,33 @@
     <div style="display:flex; gap:8px;">
         <div style="flex:1.5">
             <label>條碼 (可手動修改)</label>
-            <input type="text" id="barcode" placeholder="請掃描或輸入">
+            <input type="text" id="barcode" placeholder="掃描或輸入條碼">
         </div>
         <div style="flex:1">
-            <label>數量</label>
-            <input type="number" id="qty" value="1">
+            <label>電腦庫存量 (唯讀)</label>
+            <input type="text" id="comp-stock" readonly value="0">
         </div>
     </div>
 
     <label>品名 (可手動修改)</label>
     <input type="text" id="name" placeholder="自動帶入品名...">
 
-    <label>效期</label>
-    <div style="display:flex; gap:4px;">
-        <select id="exp-y"></select>
-        <select id="exp-m">
-            <option value="">月</option>
-            <script>for(let i=1;i<=12;i++) document.write(`<option value="${String(i).padStart(2,'0')}">${i}月</option>`)</script>
-        </select>
-        <select id="exp-d"></select>
+    <div style="display:flex; gap:8px; align-items: flex-end;">
+        <div style="flex:1">
+            <label>盤點數量</label>
+            <input type="number" id="qty" value="1">
+        </div>
+        <div style="flex:2">
+            <label>效期</label>
+            <div style="display:flex; gap:4px;">
+                <select id="exp-y"></select>
+                <select id="exp-m">
+                    <option value="">月</option>
+                    <script>for(let i=1;i<=12;i++) document.write(`<option value="${String(i).padStart(2,'0')}">${i}月</option>`)</script>
+                </select>
+                <select id="exp-d"></select>
+            </div>
+        </div>
     </div>
 
     <label>儲位 / 備註</label>
@@ -150,7 +136,15 @@
 <div class="table-container">
     <table>
         <thead>
-            <tr><th>使用者</th><th>品名</th><th>數量</th><th>效期</th><th>儲位</th><th>操作</th></tr>
+            <tr>
+                <th>使用者</th>
+                <th>品名</th>
+                <th>條碼</th>
+                <th>數量</th>
+                <th>電腦庫存</th>
+                <th>儲位</th>
+                <th>操作</th>
+            </tr>
         </thead>
         <tbody id="table-body"></tbody>
     </table>
@@ -163,117 +157,112 @@
 
 <script>
     const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYlvRc0iS91LtXg1laxAMKADMYTXOFGHENh3E-g5QqDCV08F1O8PzfzWEiGdAAwzJpkeiJ2rWBR05t/pub?gid=1142644173&single=true&output=csv";
-    const STORAGE_KEY = "xw_inventory_v2";
+    const STORAGE_KEY = "xw_inventory_v3"; // 升級版本 key
     
     let barcodeMap = {};
     let records = [];
     let scanner = null;
     let isTorchOn = false;
 
-    // 初始化下拉選單
+    // 初始化選單
     const yearSel = document.getElementById('exp-y');
     const daySel = document.getElementById('exp-d');
     const thisYear = new Date().getFullYear();
     yearSel.innerHTML = `<option value="">年</option>` + Array.from({length:11}, (_,i)=>`<option value="${thisYear+i}">${thisYear+i}</option>`).join('');
     daySel.innerHTML = `<option value="">日</option>` + Array.from({length:31}, (_,i)=>`<option value="${String(i+1).padStart(2,'0')}">${i+1}</option>`).join('');
 
-    // 1. 抓取雲端資料
+    // 1. 抓取雲端資料 (A:條碼, B:品名, C:電腦庫存)
     async function initCloudDB() {
         try {
             const res = await fetch(CSV_URL);
             const text = await res.text();
             const lines = text.split(/\r?\n/);
             lines.forEach(line => {
-                const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                if (!line.trim()) return;
+                let cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                 if (cols.length >= 2) {
                     const id = cols[0].replace(/"/g, '').trim();
                     const name = cols[1].replace(/"/g, '').trim();
-                    if(id && id !== "item_id") barcodeMap[id] = name;
+                    const stock = cols[2] ? cols[2].replace(/"/g, '').trim() : "0"; // 抓取 C 欄
+                    
+                    if(id && id !== "item_id" && id !== "條碼") {
+                        barcodeMap[id] = { name: name, stock: stock };
+                    }
                 }
             });
             document.getElementById('db-status').textContent = `✅ 雲端同步完成 (${Object.keys(barcodeMap).length} 筆)`;
             document.getElementById('db-status').className = 'online';
         } catch (e) {
-            document.getElementById('db-status').textContent = "⚠️ 無法更新雲端，使用離線模式";
+            document.getElementById('db-status').textContent = "⚠️ 無法載入雲端，使用離線紀錄";
         }
     }
 
-    // 2. 啟動高速掃描 (置中優化)
+    // 2. 啟動高速掃描
     async function startScanner() {
         if (!scanner) scanner = new Html5Qrcode("reader");
-        
         const config = {
             fps: 60,
-            // 縮小掃描框，並確保掃描演算法也在正中央執行
-            qrbox: { width: 250, height: 120 }, 
+            qrbox: { width: 250, height: 120 },
             aspectRatio: 1.0,
             experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-            videoConstraints: {
-                facingMode: "environment",
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
-                focusMode: "continuous"
-            }
+            videoConstraints: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 }, focusMode: "continuous" }
         };
-
         try {
             await scanner.start({ facingMode: "environment" }, config, (text) => {
                 if (text === document.getElementById('barcode').value) return; 
                 if (navigator.vibrate) navigator.vibrate(60);
-                
-                document.getElementById('barcode').value = text;
+                updateInputsByBarcode(text);
                 document.getElementById('last-barcode-display').textContent = "✔ 掃描成功：" + text;
-                
-                if (barcodeMap[text]) {
-                    document.getElementById('name').value = barcodeMap[text];
-                } else {
-                    document.getElementById('name').value = "";
-                    document.getElementById('name').placeholder = "資料庫查無此品項";
-                }
             });
-        } catch (err) {
-            alert("請確保已開啟相機權限且使用 HTTPS 連線");
+        } catch (err) { alert("相機啟動失敗，請檢查權限"); }
+    }
+
+    // 根據條碼更新品名與庫存
+    function updateInputsByBarcode(bc) {
+        document.getElementById('barcode').value = bc;
+        if (barcodeMap[bc]) {
+            document.getElementById('name').value = barcodeMap[bc].name;
+            document.getElementById('comp-stock').value = barcodeMap[bc].stock;
+        } else {
+            document.getElementById('name').value = "";
+            document.getElementById('comp-stock').value = "0";
+            document.getElementById('name').placeholder = "查無此藥，請手動輸入";
         }
     }
 
-    // 手動輸入條碼時也自動查品名
-    document.getElementById('barcode').addEventListener('input', (e) => {
-        const val = e.target.value.trim();
-        if (barcodeMap[val]) {
-            document.getElementById('name').value = barcodeMap[val];
-        }
-    });
+    document.getElementById('barcode').addEventListener('input', (e) => updateInputsByBarcode(e.target.value.trim()));
 
     // 3. 加入清單
     document.getElementById('btn-add').addEventListener('click', () => {
         const user = document.getElementById('user').value.trim();
         const bc = document.getElementById('barcode').value.trim();
         const nm = document.getElementById('name').value.trim();
+        const stock = document.getElementById('comp-stock').value;
         
         if (!user) return alert("請輸入使用者姓名");
         if (!bc) return alert("請輸入或掃描條碼");
 
         const expiry = yearSel.value ? `${yearSel.value}/${document.getElementById('exp-m').value}/${daySel.value}` : "未填";
 
-        const record = {
+        records.unshift({
             user: user,
-            name: nm || "手動輸入項目",
+            name: nm || "手動項目",
             barcode: bc,
             qty: document.getElementById('qty').value,
+            compStock: stock,
             expiry: expiry,
             note: document.getElementById('note').value,
-            time: new Date().toLocaleTimeString()
-        };
+            time: new Date().toLocaleString()
+        });
 
-        records.unshift(record);
         updateTable();
         saveToLocal();
         
-        // 加入後清空輸入框
+        // 加入後清空 (保留使用者與備註方便連續作業)
         document.getElementById('barcode').value = "";
         document.getElementById('name').value = "";
+        document.getElementById('comp-stock').value = "0";
         document.getElementById('qty').value = "1";
-        document.getElementById('note').value = "";
     });
 
     function updateTable() {
@@ -282,8 +271,9 @@
             <tr>
                 <td>${r.user}</td>
                 <td style="text-align:left">${r.name}</td>
-                <td>${r.qty}</td>
-                <td>${r.expiry}</td>
+                <td><code style="font-size:10px">${r.barcode}</code></td>
+                <td style="font-weight:bold; color:var(--accent)">${r.qty}</td>
+                <td>${r.compStock}</td>
                 <td>${r.note}</td>
                 <td><button style="background:none; color:red; border:1px solid red; padding:2px 5px; border-radius:4px" onclick="deleteItem(${i})">刪除</button></td>
             </tr>
@@ -300,12 +290,26 @@
         if (data) { records = JSON.parse(data); updateTable(); }
     }
 
+    // 匯出 Excel (使用中文欄位)
     function exportExcel() {
-        if (!records.length) return alert("沒有資料");
-        const ws = XLSX.utils.json_to_sheet(records);
+        if (!records.length) return alert("目前沒有資料");
+        
+        // 映射中文標題
+        const excelData = records.map(r => ({
+            "使用者": r.user,
+            "品名": r.name,
+            "條碼": r.barcode,
+            "盤點數量": r.qty,
+            "電腦庫存量": r.compStock,
+            "效期": r.expiry,
+            "儲位/備註": r.note,
+            "紀錄時間": r.time
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(excelData);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "盤點紀錄");
-        XLSX.writeFile(wb, `祥威盤點_${new Date().toISOString().slice(0,10)}.xlsx`);
+        XLSX.utils.book_append_sheet(wb, ws, "盤點結果");
+        XLSX.writeFile(wb, `祥威盤點表_${new Date().toISOString().slice(0,10)}.xlsx`);
     }
 
     function clearAll() {
@@ -325,7 +329,6 @@
 
     initCloudDB();
     loadLocal();
-
 </script>
 </body>
 </html>
