@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>祥威藥局盤點工具 - 雲端高級版</title>
+    <title>祥威藥局盤點工具 - 雙條碼支援版</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
@@ -62,7 +62,7 @@
         .btn-torch { background: #f1c40f; color: #000; flex: 0.3; }
         
         .table-container { overflow-x: auto; background: #fff; border-radius: 8px; margin-top: 10px; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 700px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 750px; }
         th, td { padding: 8px; border-bottom: 1px solid #eee; text-align: center; }
         th { background: #fafafa; color: #64748b; }
 
@@ -74,8 +74,8 @@
 </head>
 <body>
 
-<h1>祥威藥局盤點工具</h1>
-<div id="db-status">正在同步雲端品名...</div>
+<h1>祥威藥局盤點工具 (雙條碼版)</h1>
+<div id="db-status">正在讀取雲端雙條碼資料...</div>
 
 <div class="section">
     <label>使用者</label>
@@ -97,7 +97,7 @@
 <div class="section">
     <div style="display:flex; gap:8px;">
         <div style="flex:1.5">
-            <label>條碼 (可手動修改)</label>
+            <label>掃描條碼 (可手動修改)</label>
             <input type="text" id="barcode" placeholder="掃描或手動輸入">
         </div>
         <div style="flex:1">
@@ -107,7 +107,7 @@
     </div>
 
     <label>品名 (可手動修改)</label>
-    <input type="text" id="name" placeholder="自動帶入品名...">
+    <input type="text" id="name" placeholder="自動查詢品名...">
 
     <div style="display:flex; gap:8px; align-items: flex-end;">
         <div style="flex:1">
@@ -138,7 +138,7 @@
         <thead>
             <tr>
                 <th>使用者</th>
-                <th>條碼</th>
+                <th>掃描條碼</th>
                 <th>品名</th>
                 <th>數量</th>
                 <th>電腦庫存</th>
@@ -157,22 +157,22 @@
 </div>
 
 <script>
-    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRYlvRc0iS91LtXg1laxAMKADMYTXOFGHENh3E-g5QqDCV08F1O8PzfzWEiGdAAwzJpkeiJ2rWBR05t/pub?gid=1142644173&single=true&output=csv";
-    const STORAGE_KEY = "xw_inventory_v4"; 
+    const CSV_URL = "在此處貼上你的Google_CSV網址";
+    const STORAGE_KEY = "xw_inventory_v5"; 
     
     let barcodeMap = {};
     let records = [];
     let scanner = null;
     let isTorchOn = false;
 
-    // 初始化選單
+    // 初始化年份日期選單
     const yearSel = document.getElementById('exp-y');
     const daySel = document.getElementById('exp-d');
     const thisYear = new Date().getFullYear();
     yearSel.innerHTML = `<option value="">年</option>` + Array.from({length:11}, (_,i)=>`<option value="${thisYear+i}">${thisYear+i}</option>`).join('');
     daySel.innerHTML = `<option value="">日</option>` + Array.from({length:31}, (_,i)=>`<option value="${String(i+1).padStart(2,'0')}">${i+1}</option>`).join('');
 
-    // 1. 抓取雲端資料 (A:條碼, B:品名, C:電腦庫存)
+    // 1. 抓取雲端資料：支援 A、B 兩欄條碼對應同一個品名/庫存
     async function initCloudDB() {
         try {
             const res = await fetch(CSV_URL);
@@ -181,24 +181,27 @@
             lines.forEach(line => {
                 if (!line.trim()) return;
                 let cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                if (cols.length >= 2) {
-                    const id = cols[0].replace(/"/g, '').trim();
-                    const name = cols[1].replace(/"/g, '').trim();
-                    const stock = cols[2] ? cols[2].replace(/"/g, '').trim() : "0"; 
+                if (cols.length >= 3) { // 至少要有 A, B, C 欄
+                    const code1 = cols[0].replace(/"/g, '').trim(); // A 欄
+                    const code2 = cols[1].replace(/"/g, '').trim(); // B 欄
+                    const name = cols[2].replace(/"/g, '').trim();  // C 欄
+                    const stock = cols[3] ? cols[3].replace(/"/g, '').trim() : "0"; // D 欄
                     
-                    if(id && id !== "item_id" && id !== "條碼") {
-                        barcodeMap[id] = { name: name, stock: stock };
-                    }
+                    const productData = { name: name, stock: stock };
+
+                    // 將兩欄條碼都註冊到索引中
+                    if(code1 && code1 !== "item_id") barcodeMap[code1] = productData;
+                    if(code2 && code2 !== "barcode2") barcodeMap[code2] = productData;
                 }
             });
-            document.getElementById('db-status').textContent = `✅ 雲端同步完成 (${Object.keys(barcodeMap).length} 筆)`;
+            document.getElementById('db-status').textContent = `✅ 雲端同步成功！(已載入 ${Object.keys(barcodeMap).length} 個條碼索引)`;
             document.getElementById('db-status').className = 'online';
         } catch (e) {
-            document.getElementById('db-status').textContent = "⚠️ 無法載入雲端，使用離線紀錄";
+            document.getElementById('db-status').textContent = "⚠️ 雲端讀取失敗，使用離線模式";
         }
     }
 
-    // 2. 啟動高速掃描
+    // 2. 掃描功能
     async function startScanner() {
         if (!scanner) scanner = new Html5Qrcode("reader");
         const config = {
@@ -214,9 +217,10 @@
                 updateInputsByBarcode(text);
                 document.getElementById('last-barcode-display').textContent = "✔ 掃描成功：" + text;
             });
-        } catch (err) { alert("相機啟動失敗，請檢查權限"); }
+        } catch (err) { alert("相機啟動失敗，請確認權限"); }
     }
 
+    // 搜尋邏輯：不論哪一欄條碼都能抓到資料
     function updateInputsByBarcode(bc) {
         document.getElementById('barcode').value = bc;
         if (barcodeMap[bc]) {
@@ -224,32 +228,29 @@
             document.getElementById('comp-stock').value = barcodeMap[bc].stock;
         } else {
             document.getElementById('comp-stock').value = "0";
-            document.getElementById('name').placeholder = "資料庫查無此藥";
+            document.getElementById('name').placeholder = "查無此藥，請手動輸入";
         }
     }
 
     document.getElementById('barcode').addEventListener('input', (e) => updateInputsByBarcode(e.target.value.trim()));
 
-    // 3. 加入清單
+    // 3. 加入清單與表格更新
     document.getElementById('btn-add').addEventListener('click', () => {
         const user = document.getElementById('user').value.trim();
         const bc = document.getElementById('barcode').value.trim();
         const nm = document.getElementById('name').value.trim();
-        const stock = document.getElementById('comp-stock').value;
-        const m = document.getElementById('exp-m').value;
-        const d = daySel.value;
         
         if (!user) return alert("請輸入使用者姓名");
         if (!bc) return alert("請輸入或掃描條碼");
 
-        const expiry = yearSel.value ? `${yearSel.value}/${m || '01'}/${d || '01'}` : "未填";
+        const expiry = yearSel.value ? `${yearSel.value}/${document.getElementById('exp-m').value || '01'}/${daySel.value || '01'}` : "未填";
 
         records.unshift({
             user: user,
             barcode: bc,
-            name: nm || "手動項目",
+            name: nm || "手動新增",
             qty: document.getElementById('qty').value,
-            compStock: stock,
+            compStock: document.getElementById('comp-stock').value,
             expiry: expiry,
             note: document.getElementById('note').value,
             time: new Date().toLocaleString('zh-TW', {hour12:false})
@@ -258,7 +259,6 @@
         updateTable();
         saveToLocal();
         
-        // 清空輸入框
         document.getElementById('barcode').value = "";
         document.getElementById('name').value = "";
         document.getElementById('comp-stock').value = "0";
@@ -281,9 +281,7 @@
         `).join('');
     }
 
-    window.deleteItem = (i) => {
-        if(confirm("確定刪除此筆？")) { records.splice(i, 1); updateTable(); saveToLocal(); }
-    };
+    window.deleteItem = (i) => { if(confirm("確定刪除？")) { records.splice(i, 1); updateTable(); saveToLocal(); } };
 
     function saveToLocal() { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }
     function loadLocal() {
@@ -291,11 +289,12 @@
         if (data) { records = JSON.parse(data); updateTable(); }
     }
 
+    // 匯出中文 Excel
     function exportExcel() {
         if (!records.length) return alert("沒有資料");
         const excelData = records.map(r => ({
             "使用者": r.user,
-            "條碼": r.barcode,
+            "掃描條碼": r.barcode,
             "品名": r.name,
             "盤點數量": r.qty,
             "電腦庫存量": r.compStock,
@@ -310,9 +309,7 @@
     }
 
     function clearAll() {
-        if (confirm("確定要清空全部紀錄嗎？")) {
-            records = []; updateTable(); localStorage.removeItem(STORAGE_KEY);
-        }
+        if (confirm("清空全部紀錄？")) { records = []; updateTable(); localStorage.removeItem(STORAGE_KEY); }
     }
 
     document.getElementById('btn-torch').addEventListener('click', async () => {
